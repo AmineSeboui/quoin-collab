@@ -1,0 +1,48 @@
+{
+  "name": "quoin-collab-server",
+  "version": "0.1.0",
+  "description": "A self-hostable Yjs collaboration server for Quoin: rooms, presence, persistence and horizontal fanout, with no transport of its own.",
+  "license": "MIT",
+  "author": {
+    "name": "Amine Sboui",
+    "url": "https://github.com/AmineSeboui"
+  },
+  "keywords": [
+    "yjs",
+    "collaboration",
+    "websocket",
+    "crdt",
+    "quoin",
+    "real-time",
+    "self-hosted"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "quoin-collab-server": "./src/standalone/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./standalone": "./src/standalone/index.ts",
+    "./token": "./src/token.ts"
+  },
+  "scripts": {
+    "dev": "node --experimental-strip-types src/standalone/cli.ts",
+    "start": "node --experimental-strip-types src/standalone/cli.ts",
+    "build": "esbuild src/standalone/cli.ts --bundle --platform=node --target=node20 --format=esm --external:ws --external:pg --external:ioredis --outfile=dist/cli.js"
+  },
+  "dependencies": {
+    "lib0": "^0.2.112",
+    "quoin-collab-protocol": "0.1.0",
+    "ws": "^8.18.3",
+    "y-protocols": "^1.0.6"
+  },
+  "peerDependencies": {
+    "yjs": "^13.6.0"
+  },
+  "optionalDependencies": {
+    "ioredis": "^5.9.0",
+    "pg": "^8.16.3"
+  }
+}
