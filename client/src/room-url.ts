@@ -8,6 +8,7 @@ export function roomUrl(base: string, room: string, token: string | null, origin
   const here = origin ?? (typeof location === 'undefined' ? 'http://localhost' : location.href);
   const url = new URL(`${base.replace(/\/+$/, '')}/${encodeURIComponent(room)}`, here);
   url.protocol = SCHEMES[url.protocol] ?? url.protocol;
-  if (token !== null) url.searchParams.set('token', token);
+  // An empty token is no token: a deployment that needs none answers its token route with nothing.
+  if (token !== null && token !== '') url.searchParams.set('token', token);
   return url.toString();
 }

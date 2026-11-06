@@ -3,6 +3,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { CollabServer } from '../server.ts';
 import { describeRequest } from './request.ts';
 import { keepalive } from './keepalive.ts';
+import { wsBytes, wsSink } from '../adapters/ws.ts';
 
 export type StandaloneOptions = {
   collab: CollabServer;
@@ -12,12 +13,6 @@ export type StandaloneOptions = {
 };
 
 export type Standalone = { server: Server; close: () => Promise<void> };
-
-const toBytes = (data: unknown): Uint8Array => {
-  if (data instanceof ArrayBuffer) return new Uint8Array(data);
-  if (Array.isArray(data)) return new Uint8Array(Buffer.concat(data as Buffer[]));
-  return new Uint8Array(data as Buffer);
-};
 
 /** A plain Node server: `GET /health` for a load balancer, and every other path a room to join. */
 export async function startStandalone({ collab, port, host, pingIntervalMs = 25_000 }: StandaloneOptions): Promise<Standalone> {
@@ -39,20 +34,14 @@ export async function startStandalone({ collab, port, host, pingIntervalMs = 25_
       return;
     }
     const stopPinging = keepalive(socket, pingIntervalMs);
-    const sink = {
-      send: (data: Uint8Array) => {
-        if (socket.readyState === socket.OPEN) socket.send(data);
-      },
-      close: (code?: number, reason?: string) => socket.close(code, reason),
-    };
     void collab
-      .connect(described, sink)
+      .connect(described, wsSink(socket))
       .then((handle) => {
         if (handle === null) {
           stopPinging();
           return;
         }
-        socket.on('message', (data) => handle.receive(toBytes(data)));
+        socket.on('message', (data) => handle.receive(wsBytes(data)));
         socket.on('close', () => {
           stopPinging();
           handle.disconnect();

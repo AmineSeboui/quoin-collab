@@ -8,3 +8,4 @@ export type { Fanout, FanoutKind, FanoutMessage } from './fanout/fanout.ts';
 export { memoryFanout } from './fanout/memory.ts';
 export { redisFanout, type RedisClients } from './fanout/redis.ts';
 export { Room } from './room.ts';
+export { wsBytes, wsSink, type RawData, type WsSocket } from './adapters/ws.ts';

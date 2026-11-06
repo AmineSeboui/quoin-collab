@@ -24,6 +24,10 @@ describe('the socket URL for a room', () => {
     expect(roomUrl('wss://quoin.cloud/collab', 'notes', 'abc.def')).toBe('wss://quoin.cloud/collab/notes?token=abc.def');
   });
 
+  it('treats an empty token as no token at all', () => {
+    expect(roomUrl('wss://quoin.cloud/collab', 'notes', '')).toBe('wss://quoin.cloud/collab/notes');
+  });
+
   it('ignores a trailing slash on the base', () => {
     expect(roomUrl('wss://quoin.cloud/collab/', 'notes', null)).toBe('wss://quoin.cloud/collab/notes');
   });
