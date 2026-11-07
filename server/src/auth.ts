@@ -23,8 +23,17 @@ export type Authorization = {
 };
 
 /**
- * Decides whether a client may open a room. Returning null turns it away with a denial frame, so the client can
- * tell a rejection from a network failure. Absent, every connection is accepted, which suits local development
- * and nothing else.
+ * A refusal that says why. The reason reaches the client in the denial frame, so a developer sees "this
+ * project is over its document limit" rather than guessing at a dropped socket. Never put anything in it that
+ * a stranger holding a forged token should not learn.
  */
-export type Authorize = (request: ConnectionRequest) => Authorization | null | Promise<Authorization | null>;
+export type Denial = { denied: string };
+
+/**
+ * Decides whether a client may open a room. Returning null turns it away with a denial frame, so the client can
+ * tell a rejection from a network failure, and a Denial does the same while saying why. Absent, every connection
+ * is accepted, which suits local development and nothing else.
+ */
+export type Authorize = (
+  request: ConnectionRequest,
+) => Authorization | Denial | null | Promise<Authorization | Denial | null>;

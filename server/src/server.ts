@@ -53,8 +53,8 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
     async connect(request, sink) {
       // Absent means "accept everything"; present and null means "turn this one away". `??` would conflate them.
       const granted = options.authorize === undefined ? {} : await options.authorize(request);
-      if (granted === null) {
-        sink.send(deniedFrame('This room is not open to you.'));
+      if (granted === null || 'denied' in granted) {
+        sink.send(deniedFrame(granted?.denied ?? 'This room is not open to you.'));
         sink.close(4401, 'unauthorized');
         return null;
       }

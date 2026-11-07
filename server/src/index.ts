@@ -1,5 +1,5 @@
 export { createCollabServer, type CollabServer, type CollabServerOptions } from './server.ts';
-export type { Authorization, Authorize, ConnectionRequest } from './auth.ts';
+export type { Authorization, Authorize, ConnectionRequest, Denial } from './auth.ts';
 export type { ConnectionHandle, SocketSink } from './transport.ts';
 export type { Persistence } from './persistence/persistence.ts';
 export { memoryPersistence } from './persistence/memory.ts';

@@ -117,4 +117,17 @@ describe('a client the server turns away', () => {
     expect(provider.synced).toBe(false);
     await collab.close();
   });
+
+  it('passes on the reason the authorizer gave, when it gave one', async () => {
+    const collab = createCollabServer({ authorize: () => ({ denied: 'This project is at its document limit.' }) });
+    const denied: string[] = [];
+    const provider = join(collab, 'notes', 'over-the-limit');
+    provider.on('denied', (reason) => denied.push(reason));
+    await settle();
+
+    expect(denied).toEqual(['This project is at its document limit.']);
+    expect(provider.synced).toBe(false);
+    expect(collab.stats().rooms).toBe(0);
+    await collab.close();
+  });
 });
