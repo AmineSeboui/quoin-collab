@@ -3,7 +3,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { CollabServer } from '../server.ts';
 import { describeRequest } from './request.ts';
 import { keepalive } from './keepalive.ts';
-import { wsBytes, wsSink } from '../adapters/ws.ts';
+import { attachWsSocket } from '../adapters/attach.ts';
 
 export type StandaloneOptions = {
   collab: CollabServer;
@@ -34,23 +34,14 @@ export async function startStandalone({ collab, port, host, pingIntervalMs = 25_
       return;
     }
     const stopPinging = keepalive(socket, pingIntervalMs);
-    void collab
-      .connect(described, wsSink(socket))
-      .then((handle) => {
-        if (handle === null) {
-          stopPinging();
-          return;
-        }
-        socket.on('message', (data) => handle.receive(wsBytes(data)));
-        socket.on('close', () => {
-          stopPinging();
-          handle.disconnect();
-        });
-      })
-      .catch(() => {
-        stopPinging();
-        socket.close(1011, 'the room could not be opened');
-      });
+    socket.on('close', stopPinging);
+    attachWsSocket({
+      collab,
+      request: described,
+      socket,
+      onDenied: stopPinging,
+      onError: () => stopPinging(),
+    });
   });
 
   await new Promise<void>((resolve) => server.listen(port, host, resolve));

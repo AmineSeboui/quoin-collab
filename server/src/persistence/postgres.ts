@@ -7,11 +7,23 @@ type Queryable = {
 
 const TABLE = 'quoin_rooms';
 
+export type PostgresOptions = {
+  /**
+   * Whether closing this persistence also closes the pool. False by default, because a pool handed in from
+   * outside is usually shared with the rest of an application, and closing it would take that down too. Pass
+   * true only when the pool was created for this and nothing else reads it.
+   */
+  closePool?: boolean;
+};
+
 /**
  * Keeps each room as one row of merged Yjs state. Pass a `pg` Pool, or a Neon Pool, which both answer `query`.
  * Call `migrate` once at startup, or create the table yourself from the statement it runs.
  */
-export function postgresPersistence(pool: Queryable): Persistence & { migrate(): Promise<void> } {
+export function postgresPersistence(
+  pool: Queryable,
+  { closePool = false }: PostgresOptions = {},
+): Persistence & { migrate(): Promise<void> } {
   return {
     migrate: async () => {
       await pool.query(
@@ -34,6 +46,8 @@ export function postgresPersistence(pool: Queryable): Persistence & { migrate():
         [room, Buffer.from(state)],
       );
     },
-    close: async () => void (await pool.end?.()),
+    close: async () => {
+      if (closePool) await pool.end?.();
+    },
   };
 }

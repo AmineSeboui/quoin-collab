@@ -53,7 +53,8 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
         sink.close(4401, 'unauthorized');
         return null;
       }
-      const room = await rooms.acquire(request.room);
+      // An authorizer that namespaces picks the real name; without one the client's own name is used.
+      const room = await rooms.acquire(granted.room ?? request.room);
       return openConnection({ room, sink, readOnly: granted.readOnly === true, onError });
     },
     stats: () => ({ rooms: rooms.count, connections: rooms.connections }),

@@ -28,7 +28,8 @@ export async function storesFromEnv(env: StoreEnv): Promise<Stores> {
 
   if (DATABASE_URL) {
     const { Pool } = await load<PgModule>('pg');
-    const postgres = postgresPersistence(new Pool({ connectionString: DATABASE_URL }));
+    // This pool is created here and read by nothing else, so this persistence owns it.
+    const postgres = postgresPersistence(new Pool({ connectionString: DATABASE_URL }), { closePool: true });
     await postgres.migrate();
     persistence = postgres;
     notes.push('documents are kept in Postgres');
