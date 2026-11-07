@@ -68,3 +68,39 @@ describe('a room served by two processes', () => {
     await Promise.all([one.close(), two.close()]);
   });
 });
+
+describe('a subscription that takes time to become live', () => {
+  it('is awaited before the room is served, since pub/sub does not replay', async () => {
+    let listening = false;
+    const inner = memoryFanout();
+    const slow = {
+      publish: inner.publish,
+      subscribe: (room: string, listener: Parameters<typeof inner.subscribe>[1]) => {
+        const subscription = inner.subscribe(room, listener);
+        return {
+          ready: new Promise<void>((resolve) =>
+            setTimeout(() => {
+              listening = true;
+              resolve();
+            }, 80),
+          ),
+          stop: subscription.stop,
+        };
+      },
+    };
+    const collab = createCollabServer({ fanout: slow });
+    const ada = new CollabProvider({
+      url: 'wss://quoin.test/c',
+      room: 'slow',
+      socketFactory: socketsTo(collab, 'slow').factory,
+    });
+
+    const waited = Date.now();
+    while (!ada.synced && Date.now() - waited < 3_000) await new Promise((r) => setTimeout(r, 10));
+
+    expect(ada.synced).toBe(true);
+    expect(listening).toBe(true);
+    ada.destroy();
+    await collab.close();
+  });
+});

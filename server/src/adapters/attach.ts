@@ -24,8 +24,12 @@ export type AttachOptions = {
  * takes long enough for that frame to arrive first, and a frame that arrives before a listener is simply lost.
  * The client then sits connected and never synced, which looks like a hang rather than a failure. So frames
  * are held until the connection exists, and replayed into it in order.
+ *
+ * It returns a promise that settles once the connection is open or refused. A serverless host may suspend an
+ * instance as soon as its handler returns, so a caller there must await this; work left running after the
+ * handler returns is not guaranteed to continue.
  */
-export function attachWsSocket({ collab, request, socket, onDenied, onError }: AttachOptions): void {
+export function attachWsSocket({ collab, request, socket, onDenied, onError }: AttachOptions): Promise<void> {
   const pending: Uint8Array[] = [];
   let handle: ConnectionHandle | null = null;
   let closed = false;
@@ -41,7 +45,7 @@ export function attachWsSocket({ collab, request, socket, onDenied, onError }: A
     handle = null;
   });
 
-  void collab
+  return collab
     .connect(request, wsSink(socket))
     .then((opened) => {
       if (opened === null) {

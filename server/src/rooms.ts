@@ -77,14 +77,15 @@ export class Rooms {
       onLocalAwareness: (payload) => fanout.publish(name, { kind: 'awareness', payload, from: serverId }),
       onEmpty: () => this.scheduleEvict(name),
     });
-    const unsubscribe = fanout.subscribe(name, (message) => {
+    const subscription = fanout.subscribe(name, (message) => {
       if (message.from === serverId) return;
       if (message.kind === 'update') room.applyUpdate(message.payload, REMOTE);
       else room.applyAwareness(message.payload, REMOTE);
     });
-    const ready = persistence
-      .load(name)
-      .then((state) => {
+    // The subscription is awaited with the load: a room served before it is listening misses whatever is
+    // published in that window, and pub/sub does not replay.
+    const ready = Promise.all([subscription.ready, persistence.load(name)])
+      .then(([, state]) => {
         if (state !== null) room.applyUpdate(state, REMOTE);
         return room;
       })
@@ -92,7 +93,7 @@ export class Rooms {
         onError(error instanceof Error ? error : new Error(String(error)));
         return room;
       });
-    const entry: Entry = { room, ready, unsubscribe, save: null, evict: null };
+    const entry: Entry = { room, ready, unsubscribe: subscription.stop, save: null, evict: null };
     this.entries.set(name, entry);
     this.options.meter.record({ kind: 'room.opened', room: name });
     return entry;
