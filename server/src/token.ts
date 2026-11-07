@@ -7,6 +7,12 @@ export type RoomClaims = {
   readOnly?: boolean;
   /** Which tenant the room belongs to, for a deployment serving more than one. */
   project?: string;
+  /**
+   * An opaque id for the reader, chosen by you. A hosted deployment counts distinct subjects to bill for
+   * people rather than connections, so it should be stable per person and mean nothing on its own: an
+   * internal id rather than a name or an address.
+   */
+  subject?: string;
 };
 
 const encode = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url');

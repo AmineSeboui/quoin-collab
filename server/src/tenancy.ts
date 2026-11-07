@@ -47,6 +47,6 @@ export function tenantAuthorize({ lookup, namespace = prefixed, onError }: Tenan
 
     const claims = verifyWithAny(request.token, request.room, tenant.secrets);
     if (claims === null) return null;
-    return { readOnly: claims.readOnly === true, room: namespace(project, request.room) };
+    return { readOnly: claims.readOnly === true, room: namespace(project, request.room), subject: claims.subject };
   };
 }

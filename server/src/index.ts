@@ -8,6 +8,7 @@ export type { Fanout, FanoutKind, FanoutMessage } from './fanout/fanout.ts';
 export { memoryFanout } from './fanout/memory.ts';
 export { redisFanout, type RedisClients } from './fanout/redis.ts';
 export { Room } from './room.ts';
+export { memoryMeter, noMeter, type Meter, type MeterCounts, type MeterEvent } from './meter.ts';
 export { wsBytes, wsSink, type RawData, type WsSocket } from './adapters/ws.ts';
 export { attachWsSocket, type AttachableSocket, type AttachOptions } from './adapters/attach.ts';
 export { resolveRedisUrl, resolveRedisUrlName } from './redis-url.ts';

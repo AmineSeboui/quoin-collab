@@ -1,5 +1,6 @@
 import type { Fanout } from './fanout/fanout.ts';
 import type { Persistence } from './persistence/persistence.ts';
+import type { Meter } from './meter.ts';
 import { REMOTE, Room } from './room.ts';
 
 export type RoomsOptions = {
@@ -9,6 +10,7 @@ export type RoomsOptions = {
   serverId: string;
   saveAfterMs: number;
   evictAfterMs: number;
+  meter: Meter;
   onError: (error: Error) => void;
 };
 
@@ -92,6 +94,7 @@ export class Rooms {
       });
     const entry: Entry = { room, ready, unsubscribe, save: null, evict: null };
     this.entries.set(name, entry);
+    this.options.meter.record({ kind: 'room.opened', room: name });
     return entry;
   }
 
@@ -121,6 +124,7 @@ export class Rooms {
     this.entries.delete(name);
     entry.unsubscribe();
     entry.room.destroy();
+    this.options.meter.record({ kind: 'room.closed', room: name });
   }
 
   private stillWanted(name: string, entry: Entry): boolean {

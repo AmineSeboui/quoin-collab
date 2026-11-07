@@ -8,6 +8,7 @@ import {
   syncStep1,
   syncStep2,
 } from 'quoin-collab-protocol';
+import type { Meter } from './meter.ts';
 import type { Room } from './room.ts';
 import type { ConnectionHandle, SocketSink } from './transport.ts';
 
@@ -15,6 +16,9 @@ export type ConnectionOptions = {
   room: Room;
   sink: SocketSink;
   readOnly: boolean;
+  /** The opaque id the host's token named, passed to the meter and nowhere else. */
+  subject?: string;
+  meter: Meter;
   onError: (error: Error) => void;
 };
 
@@ -24,7 +28,7 @@ type AwarenessChange = { added: number[]; updated: number[]; removed: number[] }
  * Serves one socket. It is attached before the opening sync is sent, so a change made in between reaches it as
  * an update rather than being missed; Yjs holds an update it cannot place yet until the sync fills the gap.
  */
-export function openConnection({ room, sink, readOnly, onError }: ConnectionOptions): ConnectionHandle {
+export function openConnection({ room, sink, readOnly, subject, meter, onError }: ConnectionOptions): ConnectionHandle {
   const clients = new Set<number>();
 
   const track = ({ added, updated, removed }: AwarenessChange, origin: unknown) => {
@@ -34,6 +38,7 @@ export function openConnection({ room, sink, readOnly, onError }: ConnectionOpti
   };
   room.awareness.on('update', track);
   room.attach(sink);
+  meter.record({ kind: 'connection.opened', room: room.name, subject });
 
   sink.send(syncStep1(room.doc));
   const present = room.awarenessSnapshot();
@@ -66,6 +71,7 @@ export function openConnection({ room, sink, readOnly, onError }: ConnectionOpti
     disconnect() {
       room.awareness.off('update', track);
       room.detach(sink, [...clients]);
+      meter.record({ kind: 'connection.closed', room: room.name });
     },
   };
 }

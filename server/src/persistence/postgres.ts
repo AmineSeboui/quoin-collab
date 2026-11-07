@@ -33,6 +33,11 @@ export function postgresPersistence(
            updated_at timestamptz not null default now()
          )`,
       );
+      // Rooms are listed by prefix where a deployment namespaces them per tenant, and the primary key's
+      // index cannot serve a LIKE under most collations. This one can.
+      await pool.query(
+        `create index if not exists ${TABLE}_name_prefix on ${TABLE} (name text_pattern_ops)`,
+      );
     },
     load: async (room) => {
       const { rows } = await pool.query(`select state from ${TABLE} where name = $1`, [room]);

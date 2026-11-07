@@ -15,6 +15,11 @@ export type Authorization = {
    * in two documents rather than one. The client never learns the rewritten name and does not need to.
    */
   room?: string;
+  /**
+   * Who the host's own token said this is, as an opaque id. It is passed to the meter and nowhere else: the
+   * server never interprets it and never sends it to another client.
+   */
+  subject?: string;
 };
 
 /**
