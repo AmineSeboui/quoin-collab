@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    // Tests drive the browser client against the Node server, so this program needs both sets of globals.
+    // The packages themselves stay narrow: neither can reach for the other's.
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "declaration": false
+  },
+  "include": ["."]
+}

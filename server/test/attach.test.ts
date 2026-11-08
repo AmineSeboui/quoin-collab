@@ -19,8 +19,8 @@ class BareSocket implements AttachableSocket {
     this.closes?.();
   }
   on(event: 'message' | 'close', listener: never) {
-    if (event === 'message') this.messages = listener as unknown as (data: Buffer) => void;
-    else this.closes = listener as unknown as () => void;
+    if (event === 'message') this.messages = listener;
+    else this.closes = listener;
   }
   /** Delivers as a real socket does: to whoever is listening right now, and to nobody otherwise. */
   deliver(frame: Uint8Array) {
@@ -39,7 +39,7 @@ describe('a connection whose authorizer is slow', () => {
       },
     });
     const socket = new BareSocket();
-    attachWsSocket({ collab, request: { room: 'notes', token: null, headers: {} }, socket });
+    void attachWsSocket({ collab, request: { room: 'notes', token: null, headers: {} }, socket });
 
     // The client does not wait to be authorized; it sends as soon as its socket is open.
     socket.deliver(syncStep1(new Y.Doc()));
@@ -58,7 +58,7 @@ describe('a connection whose authorizer is slow', () => {
       },
     });
     const socket = new BareSocket();
-    attachWsSocket({ collab, request: { room: 'brief', token: null, headers: {} }, socket });
+    void attachWsSocket({ collab, request: { room: 'brief', token: null, headers: {} }, socket });
     socket.close();
     await settle(150);
 

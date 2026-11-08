@@ -10,7 +10,7 @@ const soon = () => Math.floor(Date.now() / 1000) + 60;
 const ACME = 'acme-project-id';
 const OTHER = 'other-project-id';
 const SECRETS: Record<string, string[]> = { [ACME]: ['acme-secret'], [OTHER]: ['other-secret'] };
-const lookup = (project: string) => (SECRETS[project] ? { secrets: SECRETS[project]! } : null);
+const lookup = (project: string) => (SECRETS[project] ? { secrets: SECRETS[project] } : null);
 
 const ask = (token: string | null, room = 'notes') =>
   tenantAuthorize({ lookup })({ room, token, headers: {} });

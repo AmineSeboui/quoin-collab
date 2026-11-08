@@ -35,7 +35,9 @@ export async function startStandalone({ collab, port, host, pingIntervalMs = 25_
     }
     const stopPinging = keepalive(socket, pingIntervalMs);
     socket.on('close', stopPinging);
-    attachWsSocket({
+    // Marked rather than awaited: it settles on its own and reports through onError, and the connection
+    // handler must not block the next upgrade while one socket finishes opening.
+    void attachWsSocket({
       collab,
       request: described,
       socket,

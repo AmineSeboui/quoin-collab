@@ -63,7 +63,7 @@ export class FakeSocket {
   }
 
   private emit(data: Uint8Array): void {
-    this.onmessage?.({ data: data.slice().buffer as ArrayBuffer });
+    this.onmessage?.({ data: data.slice().buffer });
   }
 }
 
