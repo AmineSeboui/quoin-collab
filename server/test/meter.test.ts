@@ -9,9 +9,17 @@ import { settle } from './settle.ts';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** The kinds a hosted deployment bills from. The rest of the stream is operational, and `metrics.test.ts`
+ *  is where that is checked; asserting on all of it here would break this file every time one is added. */
+const BILLED = new Set(['room.opened', 'room.closed', 'connection.opened', 'connection.closed']);
+
 const recording = () => {
   const events: MeterEvent[] = [];
-  return { events, meter: { record: (event: MeterEvent) => void events.push(event) } };
+  return {
+    events,
+    billed: () => events.filter((event) => BILLED.has(event.kind)),
+    meter: { record: (event: MeterEvent) => void events.push(event) },
+  };
 };
 
 describe('metering', () => {
@@ -21,12 +29,12 @@ describe('metering', () => {
   });
 
   it('reports a room opening and a connection with it', async () => {
-    const { events, meter } = recording();
+    const { billed, meter } = recording();
     const collab = createCollabServer({ meter });
     const ada = new CollabProvider({ url: 'wss://q/c', room: 'notes', socketFactory: socketsTo(collab, 'notes').factory });
     await settle();
 
-    expect(events).toEqual([
+    expect(billed()).toEqual([
       { kind: 'room.opened', room: 'notes' },
       { kind: 'connection.opened', room: 'notes', subject: undefined },
     ]);
@@ -35,14 +43,14 @@ describe('metering', () => {
   });
 
   it('reports the connection closing, and the room once it is dropped', async () => {
-    const { events, meter } = recording();
+    const { billed, meter } = recording();
     const collab = createCollabServer({ meter, saveAfterMs: 1, evictAfterMs: 1 });
     const ada = new CollabProvider({ url: 'wss://q/c', room: 'brief', socketFactory: socketsTo(collab, 'brief').factory });
     await settle();
     ada.destroy();
     await sleep(40);
 
-    expect(events.map((event) => event.kind)).toEqual([
+    expect(billed().map((event) => event.kind)).toEqual([
       'room.opened',
       'connection.opened',
       'connection.closed',

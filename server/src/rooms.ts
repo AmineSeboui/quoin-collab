@@ -68,23 +68,43 @@ export class Rooms {
   }
 
   private open(name: string): Entry {
-    const { fanout, persistence, serverId, onError } = this.options;
+    const { fanout, persistence, serverId, meter, onError } = this.options;
     const room = new Room(name, {
       onLocalUpdate: (payload) => {
         fanout.publish(name, { kind: 'update', payload, from: serverId });
+        meter.record({ kind: 'fanout.published', message: 'update' });
         this.scheduleSave(name);
       },
-      onLocalAwareness: (payload) => fanout.publish(name, { kind: 'awareness', payload, from: serverId }),
+      onLocalAwareness: (payload) => {
+        fanout.publish(name, { kind: 'awareness', payload, from: serverId });
+        meter.record({ kind: 'fanout.published', message: 'awareness' });
+      },
       onEmpty: () => this.scheduleEvict(name),
     });
     const subscription = fanout.subscribe(name, (message) => {
       if (message.from === serverId) return;
-      if (message.kind === 'update') room.applyUpdate(message.payload, REMOTE);
-      else room.applyAwareness(message.payload, REMOTE);
+      meter.record({ kind: 'fanout.received', message: message.kind });
+      if (message.kind === 'update') {
+        room.applyUpdate(message.payload, REMOTE);
+        meter.record({ kind: 'update.applied', room: name, bytes: message.payload.length, origin: 'remote' });
+      } else room.applyAwareness(message.payload, REMOTE);
     });
+
+    const load = (async () => {
+      const started = Date.now();
+      try {
+        const state = await persistence.load(name);
+        meter.record({ kind: 'persistence.loaded', ms: Date.now() - started });
+        return state;
+      } catch (error: unknown) {
+        meter.record({ kind: 'persistence.failed', operation: 'load' });
+        throw error;
+      }
+    })();
+
     // The subscription is awaited with the load: a room served before it is listening misses whatever is
     // published in that window, and pub/sub does not replay.
-    const ready = Promise.all([subscription.ready, persistence.load(name)])
+    const ready = Promise.all([subscription.ready, load])
       .then(([, state]) => {
         if (state !== null) room.applyUpdate(state, REMOTE);
         return room;
@@ -135,9 +155,13 @@ export class Rooms {
   private async persist(name: string, known?: Entry): Promise<void> {
     const entry = known ?? this.entries.get(name);
     if (entry === undefined) return;
+    const state = entry.room.state();
+    const started = Date.now();
     try {
-      await this.options.persistence.save(name, entry.room.state());
+      await this.options.persistence.save(name, state);
+      this.options.meter.record({ kind: 'persistence.saved', ms: Date.now() - started, bytes: state.length });
     } catch (error: unknown) {
+      this.options.meter.record({ kind: 'persistence.failed', operation: 'save' });
       this.options.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }

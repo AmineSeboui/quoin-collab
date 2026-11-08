@@ -51,7 +51,9 @@ export function openConnection({ room, sink, readOnly, subject, meter, onError }
     }
     // Step 2 and a plain update both carry an update, and a read-only client gets to write neither.
     const update = decoding.readVarUint8Array(decoder);
-    if (!readOnly) room.applyUpdate(update, sink);
+    if (readOnly) return;
+    room.applyUpdate(update, sink);
+    meter.record({ kind: 'update.applied', room: room.name, bytes: update.length, origin: 'client' });
   };
 
   return {

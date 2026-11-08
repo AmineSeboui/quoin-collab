@@ -4,19 +4,36 @@ import type { CollabServer } from '../server.ts';
 import { describeRequest } from './request.ts';
 import { keepalive } from './keepalive.ts';
 import { attachWsSocket } from '../adapters/attach.ts';
+import type { Metrics } from '../metrics.ts';
 
 export type StandaloneOptions = {
   collab: CollabServer;
   port: number;
   host?: string;
   pingIntervalMs?: number;
+  /**
+   * Serves `GET /metrics` when given. Absent, that path is a room name like any other, which is the right
+   * default: metrics belong on a network somebody chose, not on whatever this port is reachable from.
+   */
+  metrics?: Metrics;
 };
 
 export type Standalone = { server: Server; close: () => Promise<void> };
 
 /** A plain Node server: `GET /health` for a load balancer, and every other path a room to join. */
-export async function startStandalone({ collab, port, host, pingIntervalMs = 25_000 }: StandaloneOptions): Promise<Standalone> {
+export async function startStandalone({
+  collab,
+  port,
+  host,
+  pingIntervalMs = 25_000,
+  metrics,
+}: StandaloneOptions): Promise<Standalone> {
   const server = createServer((request, response) => {
+    if (metrics !== undefined && request.url === '/metrics') {
+      response.writeHead(200, { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' });
+      response.end(metrics.render());
+      return;
+    }
     if (request.url === '/health') {
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end(JSON.stringify({ status: 'ok', ...collab.stats() }));
