@@ -108,4 +108,5 @@ short version is `npm run check`.
 
 ## Licence
 
-MIT. Copyright 2026 Amine Sboui.
+MIT. Copyright 2026 Amine Sboui. The Docker image also carries code from lib0, y-protocols and Yjs, whose
+licences are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

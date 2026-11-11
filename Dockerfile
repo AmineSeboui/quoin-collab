@@ -14,6 +14,7 @@ ENV PORT=1234
 # Left out of the bundle: ws is CommonJS, and the two stores are loaded by name only when a URL asks for them.
 RUN npm install --no-save --omit=dev --no-audit --no-fund ws@8 pg@8 ioredis@5
 COPY --from=build /app/packages/server/bundle/cli.js ./cli.js
+COPY LICENSE THIRD_PARTY_NOTICES.md ./
 USER node
 EXPOSE 1234
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
