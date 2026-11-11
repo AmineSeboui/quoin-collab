@@ -1,9 +1,11 @@
 # The server is bundled to one file, so the image carries no workspace layout and no build tooling.
 FROM node:24-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
-RUN npm ci --no-audit --no-fund && npm run build:bundle --workspace quoin-collab-server
+RUN npm ci --no-audit --no-fund \
+  && npm run build --workspace quoin-collab-protocol \
+  && npm run build:bundle --workspace quoin-collab-server
 
 FROM node:24-alpine
 WORKDIR /app
