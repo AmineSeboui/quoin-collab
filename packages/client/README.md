@@ -29,9 +29,14 @@ expires in five minutes is refreshed rather than carried around.
 
 ## Why not y-websocket's provider
 
-Use y-websocket's if it suits you: the wire is the same protocol and either end works with either. This one
-is smaller, and it reconnects when a serverless function's time limit closes a healthy socket, which looks
-like a crash to a provider that was not expecting it.
+Use y-websocket's. The wire is the same protocol, either end works with either, and a client you already
+have is one fewer thing to install.
+
+The reason this one exists is size: about 32 kB unpacked against y-websocket's 92 kB, because it does one
+thing and carries no other provider with it. Both handle the close a serverless function's time limit
+causes, and handle it in roughly the same time: y-websocket 3 resets its backoff once a connection has
+synced, so a routine close costs about 200 milliseconds, and this one costs 75 to 150. That is a difference
+of milliseconds and not a reason to switch.
 
 The server it talks to is [quoin-collab-server](https://www.npmjs.com/package/quoin-collab-server), and the
 source is at [AmineSeboui/quoin-collab](https://github.com/AmineSeboui/quoin-collab).

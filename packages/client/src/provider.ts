@@ -112,6 +112,10 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   private setSynced(synced: boolean): void {
     if (this.settled === synced) return;
     this.settled = synced;
+    // A connection that synced did useful work, so the next close starts the delay again. One that opened and
+    // was dropped before syncing did not, and a server accepting sockets it cannot serve must be backed off
+    // rather than retried every 150 milliseconds.
+    if (synced) this.delay.reset();
     this.emit('sync', synced);
   }
 
@@ -148,7 +152,6 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   }
 
   private onOpen(): void {
-    this.delay.reset();
     this.setStatus('connected');
     this.send(syncStep1(this.doc));
     const local = this.awareness.getLocalState();

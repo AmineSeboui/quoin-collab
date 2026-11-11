@@ -1,6 +1,6 @@
 {
   "name": "quoin-collab-protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The wire protocol Quoin's collaboration server and client both speak, compatible with y-websocket.",
   "license": "MIT",
   "author": {

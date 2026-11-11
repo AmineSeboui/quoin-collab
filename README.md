@@ -7,7 +7,7 @@ something else: the hosted service at quoincloud.com runs this code.
 | Package | What it is |
 | --- | --- |
 | [`quoin-collab-server`](packages/server) | Rooms, presence, persistence and fanout. Runs standalone, or inside a server you already have. |
-| [`quoin-collab-client`](packages/client) | One socket to one room, with awareness and a reconnect that survives a function's time limit. |
+| [`quoin-collab-client`](packages/client) | One socket to one room, with awareness. A third the size of y-websocket's provider, and optional: that one works too. |
 | [`quoin-collab-protocol`](packages/protocol) | The frames both ends read and write. Compatible with y-websocket. |
 
 ## Why it is open
@@ -67,9 +67,9 @@ const provider = new CollabProvider({
 });
 ```
 
-Any y-websocket client will do instead, because the protocol is y-websocket's. The provider here is smaller
-and reconnects when a serverless function's time limit closes a healthy socket, which is the only reason it
-exists.
+Any y-websocket client will do instead, and if you already have one, use it: the protocol is y-websocket's
+and either end works with either. The provider here is about a third the size, which is the only reason to
+prefer it.
 
 ## Documentation
 
