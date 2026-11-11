@@ -95,6 +95,17 @@ npm run check
 `check` builds the three packages, typechecks them, lints and runs the tests. The server runs from source
 with `npm run dev`, no build step, because nothing in it is syntax Node cannot simply erase.
 
+## Security
+
+A room is opened by a token your application signed, so most of what could go wrong here is about tokens and
+about one room reaching another. [SECURITY.md](SECURITY.md) says what is in scope and what is not, and asks
+you to report privately rather than in an issue.
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the gate, what a change needs, and how a release goes out. The
+short version is `npm run check`.
+
 ## Licence
 
 MIT. Copyright 2026 Amine Sboui.
