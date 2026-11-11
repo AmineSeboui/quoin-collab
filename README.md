@@ -73,7 +73,11 @@ exists.
 
 ## Documentation
 
-Self-hosting, the token format, the architecture and the serverless notes are at
+- [Architecture](docs/architecture.md), how a keystroke gets from one browser to another.
+- [Self-hosting](docs/self-hosting.md), on a VPS, with Docker, or behind your own load balancer.
+- [Serverless](docs/serverless.md), running it in a function instead of a process.
+
+The same ground, written for a reader rather than a contributor, is at
 [quoincloud.com/docs](https://quoincloud.com/docs). The editor these documents are written in is
 [quoin-editor](https://github.com/AmineSeboui/quoin-editor).
 
