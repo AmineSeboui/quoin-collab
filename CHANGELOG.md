@@ -14,9 +14,9 @@ a client and a server from the same release always understand each other. Newest
   right to.
 
 ### Changed
-- The reason given for this client existing is its size, about a third of y-websocket's provider, rather
-  than its reconnect. Both handle a function's time limit, and within milliseconds of each other. The
-  README said otherwise and was wrong.
+- The reason given for this client existing is the token it refreshes on every connect, and its size,
+  rather than its reconnect. Both providers handle a function's time limit, and within milliseconds of
+  each other. The README said otherwise and was wrong.
 
 ## 0.1.0 (2026-11-11)
 

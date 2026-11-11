@@ -1,7 +1,7 @@
 {
   "name": "quoin-collab-client",
   "version": "0.1.1",
-  "description": "The browser provider for Quoin's collaboration server: one WebSocket, awareness, and a third the size of y-websocket's provider, which also works.",
+  "description": "The browser provider for Quoin's collaboration server: one WebSocket, awareness, and a short lived token refreshed on every reconnect.",
   "license": "MIT",
   "author": {
     "name": "Amine Sboui",
