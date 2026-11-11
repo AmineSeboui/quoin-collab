@@ -1,0 +1,5 @@
+{
+  // Each package carries its own lib and types, so `npm run typecheck` checks them one at a time.
+  "files": [],
+  "include": []
+}

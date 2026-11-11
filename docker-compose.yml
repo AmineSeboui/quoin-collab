@@ -1,0 +1,40 @@
+# The shape a real deployment has: the server, somewhere to keep documents, and a broker so more than one
+# replica can serve the same room. Drop the last two and set neither URL to run it on its own.
+services:
+  collab:
+    build: .
+    ports:
+      - '1234:1234'
+    environment:
+      PORT: 1234
+      DATABASE_URL: postgres://quoin:quoin@postgres:5432/quoin
+      REDIS_URL: redis://redis:6379
+      QUOIN_COLLAB_SECRET: ${QUOIN_COLLAB_SECRET:-change-me-before-you-expose-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: quoin
+      POSTGRES_PASSWORD: quoin
+      POSTGRES_DB: quoin
+    volumes:
+      - documents:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U quoin']
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+volumes:
+  documents:

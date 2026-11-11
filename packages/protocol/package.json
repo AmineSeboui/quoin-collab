@@ -3,11 +3,46 @@
   "version": "0.1.0",
   "description": "The wire protocol Quoin's collaboration server and client both speak, compatible with y-websocket.",
   "license": "MIT",
+  "author": {
+    "name": "Amine Sboui",
+    "url": "https://github.com/AmineSeboui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmineSeboui/quoin-collab.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://quoincloud.com/docs/self-hosting",
+  "bugs": {
+    "url": "https://github.com/AmineSeboui/quoin-collab/issues"
+  },
+  "keywords": [
+    "yjs",
+    "y-websocket",
+    "collaboration",
+    "crdt",
+    "protocol",
+    "quoin"
+  ],
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "lib0": "^0.2.112",

@@ -7,6 +7,15 @@
     "name": "Amine Sboui",
     "url": "https://github.com/AmineSeboui"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmineSeboui/quoin-collab.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://quoincloud.com/docs/self-hosting",
+  "bugs": {
+    "url": "https://github.com/AmineSeboui/quoin-collab/issues"
+  },
   "keywords": [
     "yjs",
     "collaboration",
@@ -17,24 +26,41 @@
     "self-hosted"
   ],
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "bin": {
-    "quoin-collab-server": "./src/standalone/cli.ts"
-  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./standalone": "./src/standalone/index.ts",
-    "./token": "./src/token.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./standalone": {
+      "types": "./dist/standalone/index.d.ts",
+      "default": "./dist/standalone/index.js"
+    },
+    "./token": {
+      "types": "./dist/token.d.ts",
+      "default": "./dist/token.js"
+    }
+  },
+  "bin": {
+    "quoin-collab-server": "./dist/standalone/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.11"
   },
   "scripts": {
     "dev": "node --experimental-strip-types src/standalone/cli.ts",
-    "start": "node --experimental-strip-types src/standalone/cli.ts",
-    "build": "esbuild src/standalone/cli.ts --bundle --platform=node --target=node20 --format=esm --external:ws --external:pg --external:ioredis --outfile=dist/cli.js"
+    "start": "node dist/standalone/cli.js",
+    "build": "tsc -p tsconfig.build.json",
+    "build:bundle": "esbuild src/standalone/cli.ts --bundle --platform=node --target=node20 --format=esm --external:ws --external:pg --external:ioredis --outfile=bundle/cli.js"
   },
   "dependencies": {
     "lib0": "^0.2.112",
-    "quoin-collab-protocol": "0.1.0",
+    "quoin-collab-protocol": "^0.1.0",
     "ws": "^8.18.3",
     "y-protocols": "^1.0.6"
   },

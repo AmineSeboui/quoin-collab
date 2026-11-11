@@ -1,0 +1,48 @@
+{
+  "name": "quoin-collab",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The collaboration server behind Quoin, the browser provider that talks to it, and the wire protocol they share.",
+  "license": "MIT",
+  "author": {
+    "name": "Amine Sboui",
+    "url": "https://github.com/AmineSeboui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmineSeboui/quoin-collab.git"
+  },
+  "homepage": "https://quoincloud.com/docs/self-hosting",
+  "bugs": {
+    "url": "https://github.com/AmineSeboui/quoin-collab/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace quoin-collab-protocol && npm run build --workspace quoin-collab-server && npm run build --workspace quoin-collab-client",
+    "typecheck": "tsc -p packages/protocol && tsc -p packages/server && tsc -p packages/client && tsc -p packages/protocol/test && tsc -p packages/server/test && tsc -p packages/client/test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "dev": "npm run dev --workspace quoin-collab-server",
+    "check": "npm run build && npm run typecheck && npm run lint && npm test && npm run check:consumer",
+    "check:consumer": "node scripts/check-consumer.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.5",
+    "y-websocket": "^3.1.0",
+    "yjs": "^13.6.0"
+  }
+}

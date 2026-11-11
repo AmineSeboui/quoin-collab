@@ -1,0 +1,38 @@
+name: check
+
+# Pushes to main, and every pull request. A branch with a pull request open would otherwise be checked twice
+# for the same commit, under two refs that no concurrency group can collapse into one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A superseded run tells you about a commit nobody is looking at any more.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # The packages resolve each other through their built output, so this comes before anything reads them.
+      - run: npm run build
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - run: npm test
+
+      # Installs the tarballs the way a stranger would, which is the only check that sees what actually ships.
+      - run: npm run check:consumer
