@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { CollabServer } from '../server.ts';
@@ -16,6 +17,14 @@ export type StandaloneOptions = {
    * default: metrics belong on a network somebody chose, not on whatever this port is reachable from.
    */
   metrics?: Metrics;
+  /** Required in the `Authorization` header to read `/metrics`. Absent, the path is served to anyone who can reach it. */
+  metricsToken?: string;
+};
+
+const sameToken = (offered: string, expected: string): boolean => {
+  const a = Buffer.from(offered);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 };
 
 export type Standalone = { server: Server; close: () => Promise<void> };
@@ -27,9 +36,16 @@ export async function startStandalone({
   host,
   pingIntervalMs = 25_000,
   metrics,
+  metricsToken,
 }: StandaloneOptions): Promise<Standalone> {
   const server = createServer((request, response) => {
     if (metrics !== undefined && request.url === '/metrics') {
+      const offered = request.headers.authorization?.replace(/^Bearer /, '') ?? '';
+      if (metricsToken !== undefined && !sameToken(offered, metricsToken)) {
+        response.writeHead(401, { 'content-type': 'text/plain', 'www-authenticate': 'Bearer' });
+        response.end('These metrics want the token in QUOIN_COLLAB_METRICS_TOKEN.\n');
+        return;
+      }
       response.writeHead(200, { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' });
       response.end(metrics.render());
       return;

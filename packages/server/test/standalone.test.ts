@@ -3,6 +3,7 @@ import { CollabProvider } from 'quoin-collab-client';
 import { createCollabServer } from '../src/server.ts';
 import { startStandalone, type Standalone } from '../src/standalone/http-server.ts';
 import { signRoomToken, tokenAuthorize } from '../src/token.ts';
+import { metricsMeter } from '../src/metrics.ts';
 
 const waitFor = async (condition: () => boolean, timeoutMs = 4_000): Promise<void> => {
   const deadline = Date.now() + timeoutMs;
@@ -74,5 +75,37 @@ describe('the standalone server over a real socket', () => {
     expect(reasons[0]).toContain('not open to you');
     allowed.destroy();
     refused.destroy();
+  });
+});
+
+describe('the metrics endpoint', () => {
+  it('answers a request carrying the token and refuses one without it', async () => {
+    const at = port();
+    const metrics = metricsMeter();
+    collab = createCollabServer({ meter: metrics });
+    running = await startStandalone({ collab, port: at, host: '127.0.0.1', metrics, metricsToken: 'scrape-me' });
+
+    const bare = await fetch(`http://127.0.0.1:${at}/metrics`);
+    expect(bare.status).toBe(401);
+
+    const wrong = await fetch(`http://127.0.0.1:${at}/metrics`, {
+      headers: { authorization: 'Bearer scrape-mf' },
+    });
+    expect(wrong.status).toBe(401);
+
+    const ours = await fetch(`http://127.0.0.1:${at}/metrics`, {
+      headers: { authorization: 'Bearer scrape-me' },
+    });
+    expect(ours.status).toBe(200);
+    expect(await ours.text()).toContain('quoin_connections_open');
+  });
+
+  it('is a room name like any other when no metrics were given', async () => {
+    const at = port();
+    collab = createCollabServer();
+    running = await startStandalone({ collab, port: at, host: '127.0.0.1' });
+
+    const answer = await fetch(`http://127.0.0.1:${at}/metrics`);
+    expect(answer.status).toBe(426);
   });
 });
