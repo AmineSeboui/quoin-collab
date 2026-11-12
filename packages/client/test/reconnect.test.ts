@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
-import { syncStep2 } from 'quoin-collab-protocol';
+import { syncStep2 } from '../src/protocol/index.ts';
 import { CollabProvider } from '../src/provider.ts';
 
 /** Just enough WebSocket for the provider: it opens when told to and closes when told to. */

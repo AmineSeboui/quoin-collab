@@ -4,7 +4,6 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 RUN npm ci --no-audit --no-fund \
-  && npm run build --workspace quoin-collab-protocol \
   && npm run build:bundle --workspace quoin-collab-server
 
 FROM node:24-alpine

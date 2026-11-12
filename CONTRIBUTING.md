@@ -18,8 +18,8 @@ npm run check
 
 `check` is the whole gate and runs in this order:
 
-1. `npm run build`, first, because the packages resolve each other through their built output rather than
-   through source.
+1. `npm run build`, first, because the server's tests import the client by name, which resolves to its
+   built output rather than its source.
 2. `npm run typecheck`, each package and its tests separately, since they carry different libs and types.
 3. `npm run lint`, which is type-aware.
 4. `npm test`.
@@ -34,13 +34,15 @@ erase. Keep it that way: `erasableSyntaxOnly` is on and will tell you if you do 
 
 - A test that fails without it. For a fix, write the test first and watch it fail against the old code; a
   test that passes either way is worse than none, because it looks like cover.
+- A change to the wire goes into `src/protocol` in both packages, in the same commit. The two folders hold
+  the same files, and a test fails while they differ.
 - The public surface of a package changed means `exports`, the README and `check:consumer` all move with it.
 - A behaviour change that a consumer could notice means a line in [CHANGELOG.md](CHANGELOG.md) under
   Unreleased, in the same terms a reader would use.
 
 ## Releasing
 
-All three packages share one version, so a client and a server from the same release always understand each
-other. Bump all three, write the changelog section, merge, then tag `vX.Y.Z` on `main`. The release workflow
-checks the tag against every package's version, runs the whole gate again on a clean runner, and publishes
-protocol, server and client in that order with provenance.
+Both packages share one version, so a client and a server from the same release always understand each
+other. Bump both, write the changelog section, merge, then tag `vX.Y.Z` on `main`. The release workflow
+checks the tag against both packages' versions, runs the whole gate again on a clean runner, and publishes
+the server and the client with provenance.

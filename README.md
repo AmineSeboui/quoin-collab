@@ -1,14 +1,13 @@
 # Quoin Collab
 
-The collaboration server behind [Quoin](https://quoincloud.com), the browser provider that talks to it, and
-the wire protocol the two of them share. Three packages, all MIT, and none of them a cut-down version of
-something else: the hosted service at quoincloud.com runs this code.
+The collaboration server behind [Quoin](https://quoincloud.com), and the browser provider that talks to it.
+Two packages, both MIT, and neither a cut-down version of something else: the hosted service at
+quoincloud.com runs this code.
 
 | Package | What it is |
 | --- | --- |
 | [`quoin-collab-server`](packages/server) | Rooms, presence, persistence and fanout. Runs standalone, or inside a server you already have. |
 | [`quoin-collab-client`](packages/client) | One socket to one room, with awareness and a token refreshed on every reconnect. Optional: y-websocket's provider works too. |
-| [`quoin-collab-protocol`](packages/protocol) | The frames both ends read and write. Compatible with y-websocket. |
 
 ## Why it is open
 
@@ -92,7 +91,7 @@ npm install
 npm run check
 ```
 
-`check` builds the three packages, typechecks them, lints and runs the tests. The server runs from source
+`check` builds both packages, typechecks them, lints and runs the tests. The server runs from source
 with `npm run dev`, no build step, because nothing in it is syntax Node cannot simply erase.
 
 ## Security

@@ -22,7 +22,7 @@ jobs:
 
       - name: Check the tag names the version every package carries
         run: |
-          for package in protocol server client; do
+          for package in server client; do
             version=$(node -p "require('./packages/$package/package.json').version")
             test "$GITHUB_REF_NAME" = "v$version" || {
               echo "packages/$package is $version, and the tag says $GITHUB_REF_NAME"
@@ -37,10 +37,6 @@ jobs:
       - run: npm test
       - run: npm run check:consumer
 
-      # In dependency order, because the two that follow name the first one as a dependency.
-      - run: npm publish --workspace quoin-collab-protocol --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm publish --workspace quoin-collab-server --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

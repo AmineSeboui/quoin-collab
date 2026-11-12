@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { Awareness, removeAwarenessStates } from 'y-protocols/awareness';
-import { awarenessFrame, syncStep1, syncUpdate } from 'quoin-collab-protocol';
+import { awarenessFrame, syncStep1, syncUpdate } from './protocol/index.ts';
 import { backoff, type Backoff } from './backoff.ts';
 import { Emitter } from './emitter.ts';
 import { handleFrame } from './handle-frame.ts';

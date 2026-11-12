@@ -7,7 +7,7 @@ import {
   readFrame,
   syncStep1,
   syncStep2,
-} from 'quoin-collab-protocol';
+} from './protocol/index.ts';
 import type { Meter } from './meter.ts';
 import type { Room } from './room.ts';
 import type { ConnectionHandle, SocketSink } from './transport.ts';

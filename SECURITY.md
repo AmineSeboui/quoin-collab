@@ -4,10 +4,12 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x | Yes: security fixes are released as 0.1.x patches |
+| 0.2.x | Yes: security fixes are released as 0.2.x patches |
+| 0.1.x | No: 0.2.0 changes nothing either package exports, so upgrade instead |
 
-All three packages are released together under one version, so a fix ships as the same patch across
-`quoin-collab-protocol`, `quoin-collab-server` and `quoin-collab-client`.
+Both packages are released together under one version, so a fix ships as the same patch across
+`quoin-collab-server` and `quoin-collab-client`. `quoin-collab-protocol` was folded into both in 0.2.0 and
+gets no further releases.
 
 ## Reporting a vulnerability
 

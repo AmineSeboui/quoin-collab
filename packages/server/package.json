@@ -1,6 +1,6 @@
 {
   "name": "quoin-collab-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A self-hostable Yjs collaboration server for Quoin: rooms, presence, persistence and horizontal fanout, with no transport of its own.",
   "license": "MIT",
   "author": {
@@ -60,7 +60,6 @@
   },
   "dependencies": {
     "lib0": "^0.2.112",
-    "quoin-collab-protocol": "^0.1.1",
     "ws": "^8.18.3",
     "y-protocols": "^1.0.6"
   },

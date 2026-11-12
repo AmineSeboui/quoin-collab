@@ -62,3 +62,7 @@ caret disappears when its owner does rather than timing out a few seconds later.
 y-websocket's, deliberately. Four frame types, the same numbers, the same bodies. That is why either side of
 this can be replaced by a y-websocket equivalent, and why an existing Yjs deployment can move to this server
 without touching its clients.
+
+The frames live in `src/protocol` in both packages, the same files in each, rather than in a package of their
+own that nobody installed on purpose. A test fails the moment the two copies differ, so the server and the
+client from one release always agree on the wire.
