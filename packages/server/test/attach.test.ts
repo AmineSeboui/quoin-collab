@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCollabServer } from '../src/server.ts';
 import { attachWsSocket, type AttachableSocket } from '../src/adapters/attach.ts';
-import { syncStep1 } from 'quoin-collab-protocol';
+import { syncStep1 } from '../src/protocol/index.ts';
 import * as Y from 'yjs';
 
 /** A socket with no buffering of its own: a frame arriving before a listener is attached is simply gone. */

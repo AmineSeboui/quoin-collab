@@ -17,7 +17,7 @@ import {
   syncStep1,
   syncStep2,
   syncUpdate,
-} from '../src/index.ts';
+} from '../src/protocol/index.ts';
 
 describe('frame tags', () => {
   it('match the numbers y-websocket uses, so either side can be swapped out', () => {

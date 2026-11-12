@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate, removeAwarenessStates } from 'y-protocols/awareness';
-import { awarenessFrame, syncUpdate } from 'quoin-collab-protocol';
+import { awarenessFrame, syncUpdate } from './protocol/index.ts';
 import type { SocketSink } from './transport.ts';
 
 /** The origin on a change that arrived from another server process, which must not be published back to it. */

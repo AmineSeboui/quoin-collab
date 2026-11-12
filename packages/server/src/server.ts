@@ -1,4 +1,4 @@
-import { deniedFrame } from 'quoin-collab-protocol';
+import { deniedFrame } from './protocol/index.ts';
 import type { Authorize, ConnectionRequest } from './auth.ts';
 import type { Fanout } from './fanout/fanout.ts';
 import { memoryFanout } from './fanout/memory.ts';
