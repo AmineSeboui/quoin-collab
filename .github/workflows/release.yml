@@ -17,7 +17,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
           registry-url: https://registry.npmjs.org
 
       - name: Check the tag names the version every package carries
@@ -37,9 +36,7 @@ jobs:
       - run: npm test
       - run: npm run check:consumer
 
-      - run: npm publish --workspace quoin-collab-server --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: npm publish --workspace quoin-collab-client --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish the server through npm trusted publishing
+        run: npm publish --workspace quoin-collab-server --access public --provenance
+      - name: Publish the client through npm trusted publishing
+        run: npm publish --workspace quoin-collab-client --access public --provenance
