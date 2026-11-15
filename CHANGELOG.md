@@ -3,6 +3,14 @@
 Both packages are released together under one version, so a tag names the state of the whole wire: a
 client and a server from the same release always understand each other. Newest first.
 
+## 0.2.1 (2026-11-15)
+
+### Changed
+- Both packages are published through npm trusted publishing. The release job proves to npm, through GitHub's
+  OIDC, that it is this repository's release workflow, rather than holding a long-lived token. Nothing in
+  either package changed: this release exists to publish through the new path, which a token-free release
+  is the only way to check.
+
 ## 0.2.0 (2026-11-12)
 
 ### Changed
