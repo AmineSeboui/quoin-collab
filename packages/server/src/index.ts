@@ -9,6 +9,7 @@ export { memoryFanout } from './fanout/memory.ts';
 export { redisFanout, type RedisClients, type RedisFanoutOptions } from './fanout/redis.ts';
 export { Room } from './room.ts';
 export { REFUSED_CODE, REFUSED_REASON } from './refusal.ts';
+export { MESSAGE_CLIENT_ID } from './protocol/index.ts';
 export { bothMeters, memoryMeter, noMeter, type Meter, type MeterCounts, type MeterEvent } from './meter.ts';
 export { metricsMeter, type Metrics } from './metrics.ts';
 export { wsBytes, wsSink, type RawData, type WsSocket } from './adapters/ws.ts';

@@ -48,6 +48,8 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   private readonly ownsAwareness: boolean;
   private wanted: boolean;
   private settled = false;
+  /** Whether the server has sent anything on this socket yet. */
+  private heard = false;
   private state: ProviderStatus = 'offline';
   private destroyed = false;
   private readonly options: CollabProviderOptions;
@@ -152,10 +154,12 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   }
 
   private onOpen(): void {
+    this.heard = false;
     this.setStatus('connected');
     this.send(syncStep1(this.doc));
     const local = this.awareness.getLocalState();
-    if (local !== null) this.send(awarenessFrame(this.awareness, [this.doc.clientID]));
+    // Presence keeps the id its awareness was made with; the document's can change, as the server assigns one.
+    if (local !== null) this.send(awarenessFrame(this.awareness, [this.awareness.clientID]));
   }
 
   private onMessage(event: MessageEvent<ArrayBuffer>): void {
@@ -169,7 +173,11 @@ export class CollabProvider extends Emitter<ProviderEvents> {
         this.wanted = false;
         this.emit('denied', reason);
       },
+      onClientId: (clientID) => {
+        this.doc.clientID = clientID;
+      },
     });
+    this.heard = true;
   }
 
   private onClose(): void {
@@ -182,7 +190,7 @@ export class CollabProvider extends Emitter<ProviderEvents> {
 
   /** Carets from a connection that has ended would otherwise sit on the page until their own timeout. */
   private forgetOthers(): void {
-    const others = [...this.awareness.getStates().keys()].filter((id) => id !== this.doc.clientID);
+    const others = [...this.awareness.getStates().keys()].filter((id) => id !== this.awareness.clientID);
     if (others.length > 0) removeAwarenessStates(this.awareness, others, this.origin);
   }
 
@@ -214,8 +222,10 @@ export class CollabProvider extends Emitter<ProviderEvents> {
     this.setStatus('offline');
   }
 
+  // A change made before the server has spoken waits for the sync step 2 that answers it: a connection that may only
+  // comment is first told the client id to write under, and a change under any other is refused.
   private readonly onDocUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin !== this.origin) this.send(syncUpdate(update));
+    if (origin !== this.origin && this.heard) this.send(syncUpdate(update));
   };
 
   private readonly onAwarenessUpdate = ({ added, updated, removed }: AwarenessChange, origin: unknown) => {
