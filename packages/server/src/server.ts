@@ -21,6 +21,8 @@ export type CollabServerOptions = {
   meter?: Meter;
   /** The name the editor's comment store keeps its threads and replies under: `<field>-threads` and `<field>-replies`. */
   commentField?: string;
+  /** The largest update, in bytes, a comment-only connection may send; a larger one is refused. 65536 by default. */
+  maxCommentUpdateBytes?: number;
   serverId?: string;
   /** How long a change waits before the room is written out. */
   saveAfterMs?: number;
@@ -36,6 +38,8 @@ export type CollabServer = {
   flush(): Promise<void>;
   close(): Promise<void>;
 };
+
+const MAX_COMMENT_UPDATE_BYTES = 65_536;
 
 export function createCollabServer(options: CollabServerOptions = {}): CollabServer {
   const onError = options.onError ?? ((error: Error) => console.error(error));
@@ -70,6 +74,7 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
         access: accessOf(granted),
         subject: granted.subject,
         commentField: options.commentField,
+        maxCommentUpdateBytes: options.maxCommentUpdateBytes ?? MAX_COMMENT_UPDATE_BYTES,
         meter,
         onError,
       });

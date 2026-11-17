@@ -18,18 +18,27 @@ export type Commenter = {
   leave(): void;
 };
 
-type CommenterOptions = { room: Room; sink: SocketSink; subject: string; field?: string; meter: Meter };
+type CommenterOptions = {
+  room: Room;
+  sink: SocketSink;
+  subject: string;
+  field?: string;
+  maxUpdateBytes: number;
+  meter: Meter;
+};
 
 /**
- * Takes the updates of a connection that may only comment. One written only under the client id the server assigned
- * it, that the rule allows, is applied as a writer's would be; any other never reaches the room. A refused handshake
- * is dropped and the connection kept, since it carries changes their own authors still hold; a refused live change
- * closes it, so the commenter learns it was not saved.
+ * Takes the updates of a connection that may only comment. One no larger than `maxUpdateBytes`, written only under the
+ * client id the server assigned it, that the rule allows, is applied as a writer's would be; any other never reaches
+ * the room. A refused handshake is dropped and the connection kept, since it carries changes their own authors still
+ * hold; a refused live change closes it, so the commenter learns it was not saved.
  */
-export function commenter({ room, sink, subject, field, meter }: CommenterOptions): Commenter {
+export function commenter({ room, sink, subject, field, maxUpdateBytes, meter }: CommenterOptions): Commenter {
   const assignment = assignClientId(room);
   const allowed = (update: Uint8Array) =>
-    writtenOnlyUnder(update, assignment.clientID) && judgeCommentUpdate(room.doc, update, subject, field).ok;
+    update.length <= maxUpdateBytes &&
+    writtenOnlyUnder(update, assignment.clientID) &&
+    judgeCommentUpdate(room.doc, update, subject, field).ok;
 
   return {
     clientID: assignment.clientID,
