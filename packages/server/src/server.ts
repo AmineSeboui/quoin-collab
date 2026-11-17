@@ -1,4 +1,5 @@
 import { deniedFrame } from './protocol/index.ts';
+import { accessOf } from './access.ts';
 import type { Authorize, ConnectionRequest } from './auth.ts';
 import type { Fanout } from './fanout/fanout.ts';
 import { memoryFanout } from './fanout/memory.ts';
@@ -64,7 +65,7 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
       return openConnection({
         room,
         sink,
-        readOnly: granted.readOnly === true,
+        access: accessOf(granted),
         subject: granted.subject,
         meter,
         onError,

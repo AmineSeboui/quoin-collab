@@ -66,6 +66,11 @@ export function tenantAuthorize({
 
     const claims = verifyWithAny(request.token, request.room, tenant.secrets);
     if (claims === null) return refuse('bad-signature');
-    return { readOnly: claims.readOnly === true, room: namespace(project, request.room), subject: claims.subject };
+    return {
+      readOnly: claims.readOnly === true,
+      canComment: claims.canComment === true || undefined,
+      room: namespace(project, request.room),
+      subject: claims.subject,
+    };
   };
 }

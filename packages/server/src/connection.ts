@@ -8,6 +8,7 @@ import {
   syncStep1,
   syncStep2,
 } from './protocol/index.ts';
+import type { Access } from './access.ts';
 import type { Meter } from './meter.ts';
 import type { Room } from './room.ts';
 import type { ConnectionHandle, SocketSink } from './transport.ts';
@@ -15,7 +16,7 @@ import type { ConnectionHandle, SocketSink } from './transport.ts';
 export type ConnectionOptions = {
   room: Room;
   sink: SocketSink;
-  readOnly: boolean;
+  access: Access;
   /** The opaque id the host's token named, passed to the meter and nowhere else. */
   subject?: string;
   meter: Meter;
@@ -28,7 +29,7 @@ type AwarenessChange = { added: number[]; updated: number[]; removed: number[] }
  * Serves one socket. It is attached before the opening sync is sent, so a change made in between reaches it as
  * an update rather than being missed; Yjs holds an update it cannot place yet until the sync fills the gap.
  */
-export function openConnection({ room, sink, readOnly, subject, meter, onError }: ConnectionOptions): ConnectionHandle {
+export function openConnection({ room, sink, access, subject, meter, onError }: ConnectionOptions): ConnectionHandle {
   const clients = new Set<number>();
 
   const track = ({ added, updated, removed }: AwarenessChange, origin: unknown) => {
@@ -49,9 +50,9 @@ export function openConnection({ room, sink, readOnly, subject, meter, onError }
       sink.send(syncStep2(room.doc, decoding.readVarUint8Array(decoder)));
       return;
     }
-    // Step 2 and a plain update both carry an update, and a read-only client gets to write neither.
+    // Step 2 and a plain update both carry an update. A comment connection fails closed until its rule is wired.
     const update = decoding.readVarUint8Array(decoder);
-    if (readOnly) return;
+    if (access !== 'write') return;
     room.applyUpdate(update, sink);
     meter.record({ kind: 'update.applied', room: room.name, bytes: update.length, origin: 'client' });
   };

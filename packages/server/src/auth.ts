@@ -9,6 +9,8 @@ export type ConnectionRequest = {
 export type Authorization = {
   /** A read-only client receives every change and writes none; its frames that would write are dropped. */
   readOnly?: boolean;
+  /** With `readOnly`, the client may also manage its own comments. Without it, no effect. */
+  canComment?: boolean;
   /**
    * The room this connection actually opens, when it is not the one asked for. A deployment serving more than
    * one tenant sets it to a name carrying the tenant, so that two customers who both call a room `notes` are

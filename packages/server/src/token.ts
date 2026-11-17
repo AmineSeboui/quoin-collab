@@ -5,6 +5,8 @@ export type RoomClaims = {
   /** Seconds since the epoch, as `exp` is everywhere else. */
   exp: number;
   readOnly?: boolean;
+  /** With `readOnly`, lets the holder manage their own comments and nothing else. Alone it changes nothing. */
+  canComment?: boolean;
   /** Which tenant the room belongs to, for a deployment serving more than one. */
   project?: string;
   /**
@@ -73,5 +75,6 @@ export const tokenAuthorize =
   ({ room, token }: { room: string; token: string | null }) => {
     if (token === null) return null;
     const claims = verifyRoomToken(token, room, secret);
-    return claims === null ? null : { readOnly: claims.readOnly === true };
+    if (claims === null) return null;
+    return { readOnly: claims.readOnly === true, canComment: claims.canComment === true || undefined, subject: claims.subject };
   };
