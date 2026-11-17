@@ -26,3 +26,19 @@ describe('commentField', () => {
     expect(grace.events).toContain(`closed:${REFUSED_CODE}:${REFUSED_REASON}`);
   });
 });
+
+describe('an empty commentField', () => {
+  it('means the default field, comment, as the standalone server reads an empty variable', async () => {
+    const collab = createCollabServer({ authorize, commentField: '' });
+    const grace = await peer(collab, 'doc', 'guest');
+    const reader = await peer(collab, 'doc', 'reader');
+    await settle();
+
+    grace.send(grace.change((doc) => startThread(doc, 't-1', guest)));
+    await settle();
+
+    expect(grace.events).toEqual([]);
+    expect(threadsOf(reader.doc).has('t-1')).toBe(true);
+    await collab.close();
+  });
+});

@@ -73,7 +73,7 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
         sink,
         access: accessOf(granted),
         subject: granted.subject,
-        commentField: options.commentField,
+        commentField: options.commentField || undefined,
         maxCommentUpdateBytes: options.maxCommentUpdateBytes ?? MAX_COMMENT_UPDATE_BYTES,
         meter,
         onError,
