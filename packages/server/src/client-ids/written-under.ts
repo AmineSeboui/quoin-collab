@@ -1,8 +1,8 @@
 import * as Y from 'yjs';
 
 /**
- * Whether every struct `update` carries is under `clientID`, false when it cannot be read. Its delete set names no
- * client, so what it deletes is left to the comment rule.
+ * Whether every struct `update` carries is under `clientID`, false when it cannot be read. Its delete set names the
+ * clients whose items it deletes, not who deleted them, so what it deletes is left to the comment rule.
  */
 export function writtenOnlyUnder(update: Uint8Array, clientID: number): boolean {
   try {
