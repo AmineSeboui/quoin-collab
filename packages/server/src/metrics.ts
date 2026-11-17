@@ -7,6 +7,7 @@ type Counters = {
   connectionsRefused: Record<string, number>;
   updatesApplied: Record<string, number>;
   updateBytes: Record<string, number>;
+  updatesRefused: Record<string, number>;
   fanoutPublished: Record<string, number>;
   fanoutReceived: Record<string, number>;
   persistenceLoads: number;
@@ -52,6 +53,7 @@ export function metricsMeter(): Metrics {
     connectionsRefused: {},
     updatesApplied: {},
     updateBytes: {},
+    updatesRefused: {},
     fanoutPublished: {},
     fanoutReceived: {},
     persistenceLoads: 0,
@@ -83,6 +85,9 @@ export function metricsMeter(): Metrics {
       case 'update.applied':
         bump(counters.updatesApplied, event.origin);
         bump(counters.updateBytes, event.origin, event.bytes);
+        return;
+      case 'update.refused':
+        bump(counters.updatesRefused, event.origin);
         return;
       case 'fanout.published':
         bump(counters.fanoutPublished, event.message);
@@ -122,6 +127,8 @@ export function metricsMeter(): Metrics {
         labelled('quoin_updates_applied_total', 'origin', counters.updatesApplied)),
       ...block('quoin_update_bytes_total', 'Bytes of document update applied, by where they came from.', 'counter',
         labelled('quoin_update_bytes_total', 'origin', counters.updateBytes)),
+      ...block('quoin_updates_refused_total', 'Comment-only changes refused, from the handshake or live.', 'counter',
+        labelled('quoin_updates_refused_total', 'origin', counters.updatesRefused)),
       ...block('quoin_fanout_published_total', 'Messages published to other processes.', 'counter',
         labelled('quoin_fanout_published_total', 'message', counters.fanoutPublished)),
       ...block('quoin_fanout_received_total', 'Messages received from other processes.', 'counter',

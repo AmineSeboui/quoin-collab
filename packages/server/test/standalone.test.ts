@@ -4,6 +4,7 @@ import { createCollabServer } from '../src/server.ts';
 import { startStandalone, type Standalone } from '../src/standalone/http-server.ts';
 import { signRoomToken, tokenAuthorize } from '../src/token.ts';
 import { metricsMeter } from '../src/metrics.ts';
+import { guest, repliesOf, replyTo } from './comments/store.ts';
 
 const waitFor = async (condition: () => boolean, timeoutMs = 4_000): Promise<void> => {
   const deadline = Date.now() + timeoutMs;
@@ -75,6 +76,41 @@ describe('the standalone server over a real socket', () => {
     expect(reasons[0]).toContain('not open to you');
     allowed.destroy();
     refused.destroy();
+  });
+
+  it('keeps a commenter’s token to their own comments', async () => {
+    const at = port();
+    const secret = 'standalone-secret';
+    collab = createCollabServer({ authorize: tokenAuthorize(secret) });
+    running = await startStandalone({ collab, port: at, host: '127.0.0.1' });
+    const url = `ws://127.0.0.1:${at}`;
+    const exp = Math.floor(Date.now() / 1000) + 60;
+    const closes: number[] = [];
+    const member = new CollabProvider({ url, room: 'notes', token: signRoomToken({ room: 'notes', exp }, secret) });
+    const grace = new CollabProvider({
+      url,
+      room: 'notes',
+      token: signRoomToken({ room: 'notes', exp, readOnly: true, canComment: true, subject: guest.id }, secret),
+      socketFactory: (address) => {
+        const socket = new WebSocket(address);
+        socket.addEventListener('close', (event) => closes.push(event.code));
+        return socket;
+      },
+    });
+    const denied: string[] = [];
+    grace.on('denied', (reason) => denied.push(reason));
+    await waitFor(() => member.synced && grace.synced);
+
+    replyTo(grace.doc, 't-1', 'r-1', guest);
+    await waitFor(() => repliesOf(member.doc).has('r-1'));
+    grace.doc.getText('quoin').insert(0, 'not yours');
+    await waitFor(() => closes.length > 0);
+
+    expect(denied).toEqual(['refused']);
+    expect(closes).toEqual([4403]);
+    expect(member.doc.getText('quoin').toString()).toBe('');
+    member.destroy();
+    grace.destroy();
   });
 });
 

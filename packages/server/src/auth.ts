@@ -18,8 +18,8 @@ export type Authorization = {
    */
   room?: string;
   /**
-   * Who the host's own token said this is, as an opaque id. It is passed to the meter and nowhere else: the
-   * server never interprets it and never sends it to another client.
+   * Who the host's own token said this is, as an opaque id. The meter counts it, and a comment-only connection
+   * may write comments only as the author with this id; the server never sends it to another client.
    */
   subject?: string;
 };

@@ -23,8 +23,8 @@ describe('accessOf', () => {
   });
 });
 
-describe('a comment connection before the comment rule exists', () => {
-  it('receives changes and writes none', async () => {
+describe('a comment connection', () => {
+  it('receives changes and cannot change the text', async () => {
     const collab = createCollabServer({
       authorize: ({ token }) => (token === 'guest' ? { readOnly: true, canComment: true, subject: 'guest-1' } : {}),
     });
