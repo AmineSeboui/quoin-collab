@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import { isSubject } from './authors.ts';
+import { isIsoDate } from './iso-date.ts';
 import { isRecord } from './json.ts';
 import type { KeyChanges } from './key-changes.ts';
 
@@ -8,7 +9,7 @@ const isNewReply = (key: string, value: unknown, subject: string) =>
   value.id === key &&
   typeof value.threadId === 'string' &&
   typeof value.body === 'string' &&
-  typeof value.createdAt === 'string' &&
+  isIsoDate(value.createdAt) &&
   isSubject(value.author, subject);
 
 const isOnThread = (reply: unknown, threads: ReadonlySet<string>) =>

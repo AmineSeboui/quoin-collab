@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import { isSubject, startedBy } from './authors.ts';
+import { isIsoDate } from './iso-date.ts';
 import { isRecord, sameJson } from './json.ts';
 import type { KeyChanges } from './key-changes.ts';
 
@@ -7,7 +8,7 @@ const isNewThread = (key: string, value: unknown, subject: string) =>
   isRecord(value) &&
   value.id === key &&
   typeof value.resolved === 'boolean' &&
-  typeof value.createdAt === 'string' &&
+  isIsoDate(value.createdAt) &&
   isSubject(value.startedBy, subject);
 
 function onlyResolvedDiffers(stored: Record<string, unknown>, value: unknown): boolean {
