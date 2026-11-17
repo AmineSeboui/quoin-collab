@@ -19,6 +19,8 @@ export type CollabServerOptions = {
   authorize?: Authorize;
   /** What counts rooms, connections and people. Counts nothing by default. */
   meter?: Meter;
+  /** The name the editor's comment store keeps its threads and replies under: `<field>-threads` and `<field>-replies`. */
+  commentField?: string;
   serverId?: string;
   /** How long a change waits before the room is written out. */
   saveAfterMs?: number;
@@ -67,6 +69,7 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
         sink,
         access: accessOf(granted),
         subject: granted.subject,
+        commentField: options.commentField,
         meter,
         onError,
       });

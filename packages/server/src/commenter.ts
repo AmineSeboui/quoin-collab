@@ -18,7 +18,7 @@ export type Commenter = {
   leave(): void;
 };
 
-type CommenterOptions = { room: Room; sink: SocketSink; subject: string; meter: Meter };
+type CommenterOptions = { room: Room; sink: SocketSink; subject: string; field?: string; meter: Meter };
 
 /**
  * Takes the updates of a connection that may only comment. One written only under the client id the server assigned
@@ -26,10 +26,10 @@ type CommenterOptions = { room: Room; sink: SocketSink; subject: string; meter: 
  * is dropped and the connection kept, since it carries changes their own authors still hold; a refused live change
  * closes it, so the commenter learns it was not saved.
  */
-export function commenter({ room, sink, subject, meter }: CommenterOptions): Commenter {
+export function commenter({ room, sink, subject, field, meter }: CommenterOptions): Commenter {
   const assignment = assignClientId(room);
   const allowed = (update: Uint8Array) =>
-    writtenOnlyUnder(update, assignment.clientID) && judgeCommentUpdate(room.doc, update, subject).ok;
+    writtenOnlyUnder(update, assignment.clientID) && judgeCommentUpdate(room.doc, update, subject, field).ok;
 
   return {
     clientID: assignment.clientID,

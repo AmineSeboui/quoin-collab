@@ -21,6 +21,7 @@ export type ConnectionOptions = {
   access: Access;
   /** The opaque id the host's token named: counted by the meter, and the author a comment-only connection writes as. */
   subject?: string;
+  commentField?: string;
   meter: Meter;
   onError: (error: Error) => void;
 };
@@ -31,9 +32,9 @@ type AwarenessChange = { added: number[]; updated: number[]; removed: number[] }
  * Serves one socket. It is attached before the opening sync is sent, so a change made in between reaches it as
  * an update rather than being missed; Yjs holds an update it cannot place yet until the sync fills the gap.
  */
-export function openConnection({ room, sink, access, subject, meter, onError }: ConnectionOptions): ConnectionHandle {
+export function openConnection({ room, sink, access, subject, commentField, meter, onError }: ConnectionOptions): ConnectionHandle {
   const clients = new Set<number>();
-  const comments = access === 'comment' ? commenter({ room, sink, subject: subject ?? '', meter }) : null;
+  const comments = access === 'comment' ? commenter({ room, sink, subject: subject ?? '', field: commentField, meter }) : null;
   let refused = false;
 
   const track = ({ added, updated, removed }: AwarenessChange, origin: unknown) => {

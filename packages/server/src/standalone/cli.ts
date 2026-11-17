@@ -25,6 +25,7 @@ const collab = createCollabServer({
   fanout,
   authorize: secret ? tokenAuthorize(secret) : undefined,
   meter: metrics,
+  commentField: env.QUOIN_COLLAB_COMMENT_FIELD || undefined,
 });
 
 const { close } = await startStandalone({ collab, port, host: env.HOST, metrics, metricsToken });
