@@ -23,6 +23,11 @@ client and a server from the same release always understand each other. Newest f
   client or a y-websocket client holding a comment token ignores the frame and is refused.
 - `commentField` on `createCollabServer`, and `QUOIN_COLLAB_COMMENT_FIELD` for the standalone server, name the
   field the editor's comment store uses; it defaults to `comment`, and an empty name means the default.
+- A new thread or reply from a commenter must be dated within a window of the server's clock, 10 minutes before or
+  after by default, so a commenter cannot date a reply between two others or to the top of a thread. A guest whose
+  device clock is off by more than the window is refused. `commentClockSkewMs` on `createCollabServer`, and
+  `QUOIN_COLLAB_COMMENT_CLOCK_SKEW_MS` for the standalone server, set another window in milliseconds; an empty or
+  non-positive value means the default. Resolving a thread keeps its stored `createdAt` and is not checked.
 - `maxCommentUpdateBytes` on `createCollabServer`, and `QUOIN_COLLAB_MAX_COMMENT_UPDATE_BYTES` for the
   standalone server, bound a commenter's update, 65536 bytes by default. A larger one is refused like any other.
 - `CollabProvider` stops reconnecting and emits `denied` when an update is refused. It does the same when, on

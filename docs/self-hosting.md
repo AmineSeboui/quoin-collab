@@ -115,6 +115,13 @@ other formatting, change blocks, add anything new at the top level of the docume
 `startedBy` or `author`. A new thread or reply carries its `createdAt` as `new Date().toISOString()` writes it, and
 a thread is never started under an id the document has held before, so a deleted thread stays deleted.
 
+A new thread or reply must also be dated within 10 minutes of the server's clock, before or after, so a commenter
+cannot slip a reply between two others or pin one to the top by dating it. `commentClockSkewMs` on
+`createCollabServer`, or `QUOIN_COLLAB_COMMENT_CLOCK_SKEW_MS` for the standalone server, sets another window in
+milliseconds; an empty or non-positive value means the default. A guest whose device clock is off by more than the
+window is refused when they comment. Resolving a thread keeps its stored `createdAt`, so an old thread can still be
+resolved.
+
 The rule matches the comment store of `quoin-editor` 2.5, `yjsCommentThreads`, which keeps its threads and
 replies in the maps `<field>-threads` and `<field>-replies`, with `field` defaulting to `comment`. If your editor
 sets another `field`, tell the server the same name: the `commentField` option of `createCollabServer`, or the
