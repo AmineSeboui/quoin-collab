@@ -10,8 +10,9 @@ client and a server from the same release always understand each other. Newest f
   manage its own comments and change nothing else: it may start threads and reply as its `subject`, resolve,
   reopen or delete the threads it started, and add or remove the highlight on their text. A `canComment`
   without `readOnly` stays a writer, and every existing token and option behaves as in 0.2.1. The rule matches
-  `quoin-editor` 2.5's `yjsCommentThreads` store. `tokenAuthorize` and the standalone server pass `subject`
-  and `canComment` on.
+  `quoin-editor` 2.5's `yjsCommentThreads` store. A new comment's `createdAt` must be a date as `toISOString`
+  writes it, and a thread is never started under an id the room has held. A comment token without a `subject`
+  is served as a reader. `tokenAuthorize` and the standalone server pass `subject` and `canComment` on.
 - A commenter's update is judged by its effect on a scratch copy of the room, so only commenter connections
   pay for it. A refused live update gets a denied frame with reason `refused` and the socket closes with 4403;
   a refused sync step 2 is ignored and the connection kept. The meter records `update.refused` and `/metrics`
@@ -21,8 +22,17 @@ client and a server from the same release always understand each other. Newest f
   changes after connect; a cursor plugin comparing awareness ids with the document's id should know. A 0.2
   client or a y-websocket client holding a comment token ignores the frame and is refused.
 - `commentField` on `createCollabServer`, and `QUOIN_COLLAB_COMMENT_FIELD` for the standalone server, name the
-  field the editor's comment store uses; it defaults to `comment`.
-- `CollabProvider` stops reconnecting and emits `denied` when an update is refused.
+  field the editor's comment store uses; it defaults to `comment`, and an empty name means the default.
+- `maxCommentUpdateBytes` on `createCollabServer`, and `QUOIN_COLLAB_MAX_COMMENT_UPDATE_BYTES` for the
+  standalone server, bound a commenter's update, 65536 bytes by default. A larger one is refused like any other.
+- `CollabProvider` stops reconnecting and emits `denied` when an update is refused. It does the same when, on
+  reconnecting, its answer to the server's sync step 1 carries a change under a client id an earlier connection
+  was assigned: a comment sent on a socket that died without a close, which the server can no longer take.
+
+### Changed
+- `CollabProvider` holds every local change until the server's first frame on a connection. A change made in
+  that first round trip now travels in the sync step 2 that answers the server's step 1, rather than as an
+  update of its own the moment it is made, and a writer's reaches the room there.
 
 ## 0.2.1 (2026-11-15)
 

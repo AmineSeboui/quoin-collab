@@ -94,7 +94,7 @@ The token's claims decide what a connection may do:
 
 `canComment` only narrows a read-only token. Without `readOnly: true` the holder is a writer, as before the
 claim existed. A commenter token needs a `subject`, the id of the person it was signed for. It is the author id their comments
-must carry:
+must carry, and a comment token without one is served as a reader:
 
 ```ts
 const token = signRoomToken(
@@ -109,9 +109,11 @@ const token = signRoomToken(
 
 A commenter adds and manages their own comments and nothing else. They may start a thread whose
 `startedBy.id` is their subject, reply to any thread with `author.id` their subject, resolve, reopen or delete
-the threads they started (deleting a thread takes its replies with it), and add or remove the highlight on the
-text of their own threads. They may not insert or delete text, apply any other formatting, change blocks, add
-anything new at the top level of the document, or put an `avatarUrl` on `startedBy` or `author`.
+the threads they started (deleting a thread hides its replies, since a reply whose thread is gone is not shown),
+and add or remove the highlight on the text of their own threads. They may not insert or delete text, apply any
+other formatting, change blocks, add anything new at the top level of the document, or put an `avatarUrl` on
+`startedBy` or `author`. A new thread or reply carries its `createdAt` as `new Date().toISOString()` writes it, and
+a thread is never started under an id the document has held before, so a deleted thread stays deleted.
 
 The rule matches the comment store of `quoin-editor` 2.5, `yjsCommentThreads`, which keeps its threads and
 replies in the maps `<field>-threads` and `<field>-replies`, with `field` defaulting to `comment`. If your editor
@@ -119,23 +121,33 @@ sets another `field`, tell the server the same name: the `commentField` option o
 `QUOIN_COLLAB_COMMENT_FIELD` environment variable for the standalone server. The token's `subject` must equal
 the author id your editor writes, or the server refuses the first change.
 
+A commenter's update is refused when it is larger than 65536 bytes, which no comment the editor writes comes near.
+`maxCommentUpdateBytes` on `createCollabServer`, or `QUOIN_COLLAB_MAX_COMMENT_UPDATE_BYTES` for the standalone
+server, sets another bound. A writer's updates are bounded only by the socket: the standalone server's takes
+frames of up to 100 MiB, ws's default.
+
 ### When a change is refused
 
-A commenter update outside the rule gets a denied frame with reason `refused`, and the socket closes with code
-4403 and reason `refused`. `CollabProvider` stops reconnecting and emits `denied`. A refused sync step 2, which
-is what a reconnecting client sends to catch the room up, is ignored and the connection stays. The meter
-records `update.refused`, with origin `handshake` or `live`, and `/metrics` counts them as
-`quoin_updates_refused_total`.
+A commenter update outside the rule, or over the bound, gets a denied frame with reason `refused`, and the
+socket closes with code 4403 and reason `refused`. `CollabProvider` stops reconnecting and emits `denied`. A
+refused sync step 2, which is what a reconnecting client sends to catch the room up, is ignored and the
+connection stays. The meter records `update.refused`, with origin `handshake` or `live`, and `/metrics` counts
+them as `quoin_updates_refused_total`.
 
 ### Offering comments in your interface
 
 Comment-only connections need `quoin-collab-client` 0.3. A 0.2 client, or a y-websocket client holding a
 comment token, never learns the client id the server assigned and is refused on its first change.
 
-Offer commenting only while the provider is synced. A comment made before the id arrives, or lost on a dying
-socket, never reaches the room, and acting on that lost comment later closes the session with 4403 until the
-page reloads, so a host should offer a reload when it sees `denied` with reason `refused`. Each commenter
-connection that writes adds one entry to the document's state vector.
+Offer commenting only while the provider is synced. A comment made before the id arrives never reaches the room,
+and acting on it later, such as highlighting text for a thread the room never got, closes the session with 4403.
+A comment sent on a socket that died without a close is caught when the provider reconnects: it emits `denied`
+with reason `refused` and stops, as it does for a refused change. Either way a host should offer a reload when it
+sees `denied` with reason `refused`. Each commenter connection that writes adds one entry to the document's state
+vector.
+
+Bind `quoin-editor` after the provider's first sync, or pass `seed: false` to `yjsCollaboration`. A seed written
+before the id arrives is refused, and leaves the commenter with a block nobody else has.
 
 ## Watching it
 
