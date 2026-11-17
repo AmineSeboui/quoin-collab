@@ -93,7 +93,8 @@ The token's claims decide what a connection may do:
 | `readOnly: true`, `canComment: true` | Comment | Read, and add and manage its own comments. |
 
 `canComment` only narrows a read-only token. Without `readOnly: true` the holder is a writer, as before the
-claim existed. A commenter token also carries `subject`, the id of the person it was signed for:
+claim existed. A commenter token needs a `subject`, the id of the person it was signed for. It is the author id their comments
+must carry:
 
 ```ts
 const token = signRoomToken(
@@ -113,8 +114,10 @@ text of their own threads. They may not insert or delete text, apply any other f
 anything new at the top level of the document, or put an `avatarUrl` on `startedBy` or `author`.
 
 The rule matches the comment store of `quoin-editor` 2.5, `yjsCommentThreads`, which keeps its threads and
-replies in the maps `<field>-threads` and `<field>-replies`, with `field` defaulting to `comment`. The token's
-`subject` must equal the author id your editor writes, or the server refuses the first comment.
+replies in the maps `<field>-threads` and `<field>-replies`, with `field` defaulting to `comment`. If your editor
+sets another `field`, tell the server the same name: the `commentField` option of `createCollabServer`, or the
+`QUOIN_COLLAB_COMMENT_FIELD` environment variable for the standalone server. The token's `subject` must equal
+the author id your editor writes, or the server refuses the first change.
 
 ### When a change is refused
 
