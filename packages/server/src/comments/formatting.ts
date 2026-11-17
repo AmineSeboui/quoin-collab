@@ -1,32 +1,17 @@
 import type * as Y from 'yjs';
 import { sameJson } from './json.ts';
 
-type Run = { readonly end: number; readonly attributes: Readonly<Record<string, unknown>> };
+/** The attributes in force at a point of a text, as the formatting items before it set them. */
+export type Formatting = Map<string, unknown>;
 
-function runsOf(delta: { insert: unknown; attributes?: Record<string, unknown> }[]): Run[] {
-  let end = 0;
-  return delta.map(({ insert, attributes = {} }) => {
-    end += typeof insert === 'string' ? insert.length : 1;
-    return { end, attributes };
-  });
+export function applyFormat(formatting: Formatting, { key, value }: Y.ContentFormat): void {
+  if (value === null) formatting.delete(key);
+  else formatting.set(key, value);
 }
 
-/**
- * Each formatting key that reads differently somewhere in `text` than it did at `before`, with its value now, null
- * where it was taken off. Only formatting may have changed, so both readings run over the same content.
- */
-export function changedFormatting(text: Y.Text, before: Y.Snapshot): [string, unknown][] {
-  const was = runsOf(text.toDelta(before));
-  const now = runsOf(text.toDelta());
-  const changes: [string, unknown][] = [];
-  let i = 0;
-  let j = 0;
-  for (let a = was[0], b = now[0]; a !== undefined && b !== undefined; a = was[i], b = now[j]) {
-    for (const key of new Set([...Object.keys(a.attributes), ...Object.keys(b.attributes)])) {
-      if (!sameJson(a.attributes[key], b.attributes[key])) changes.push([key, b.attributes[key] ?? null]);
-    }
-    if (a.end <= b.end) i += 1;
-    if (b.end <= a.end) j += 1;
-  }
-  return changes;
+/** Each key set differently in `was` and `now`, with its value now, null where it is no longer set. */
+export function changedKeys(was: Formatting, now: Formatting): [string, unknown][] {
+  return [...new Set([...was.keys(), ...now.keys()])]
+    .filter((key) => was.has(key) !== now.has(key) || !sameJson(was.get(key), now.get(key)))
+    .map((key) => [key, now.has(key) ? now.get(key) : null]);
 }

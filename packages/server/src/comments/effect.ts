@@ -40,30 +40,17 @@ function commentRefusal(events: Events, { threads, replies }: Scratch, subject: 
   );
 }
 
-function markRefusal(
-  changed: Y.Transaction['changed'],
-  events: Events,
-  scratch: Scratch,
-  subject: string,
-): string | null {
+function markRefusal(changed: Y.Transaction['changed'], scratch: Scratch, subject: string): string | null {
   const marks = marksOf(scratch.threads, subject);
   for (const type of changed.keys()) {
-    if (!(type instanceof Y.Text)) continue;
-    const event = events.get(type);
-    // Yjs takes a type deleted in the transaction out of `changed`, so each text here has an event. Fail closed anyway.
-    if (!(event instanceof Y.YTextEvent)) return 'changes a text with no event';
-    const refusal = textRefusal(event, scratch.before, marks);
+    const refusal = type instanceof Y.Text ? textRefusal(type, scratch.before, marks) : null;
     if (refusal !== null) return refusal;
   }
   return null;
 }
 
 /** Why what `transaction` changed may not reach the room, or null when every change is one the subject may make. */
-export function refusalOf(transaction: Y.Transaction, scratch: Scratch, subject: string): string | null {
-  const events = ownEventsOf(transaction);
-  return (
-    kindRefusal(transaction.changed, scratch) ??
-    commentRefusal(events, scratch, subject) ??
-    markRefusal(transaction.changed, events, scratch, subject)
-  );
-}
+export const refusalOf = (transaction: Y.Transaction, scratch: Scratch, subject: string): string | null =>
+  kindRefusal(transaction.changed, scratch) ??
+  commentRefusal(ownEventsOf(transaction), scratch, subject) ??
+  markRefusal(transaction.changed, scratch, subject);
