@@ -18,21 +18,22 @@ export type FrameContext = {
   awareness: Awareness;
   /** Marks changes that came from the server, so they are not sent straight back to it. */
   origin: object;
-  send: (data: Uint8Array) => void;
+  /** Sends back the sync step 2 that answers the server's step 1. */
+  answer: (stepTwo: Uint8Array) => void;
   onSynced: () => void;
   onDenied: (reason: string) => void;
   /** The server's choice of the client id this document must write under, for a connection that may only comment. */
   onClientId: (clientID: number) => void;
 };
 
-/** Acts on one frame from the server. Anything it needs to answer goes out through `send`. */
+/** Acts on one frame from the server. Anything it needs to answer goes out through `answer`. */
 export function handleFrame(data: Uint8Array, context: FrameContext): void {
   const { type, decoder } = readFrame(data);
   if (type === MESSAGE_SYNC) {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MESSAGE_SYNC);
     const answered = syncProtocol.readSyncMessage(decoder, encoder, context.doc, context.origin);
-    if (encoding.length(encoder) > 1) context.send(encoding.toUint8Array(encoder));
+    if (encoding.length(encoder) > 1) context.answer(encoding.toUint8Array(encoder));
     if (answered === syncProtocol.messageYjsSyncStep2) context.onSynced();
     return;
   }

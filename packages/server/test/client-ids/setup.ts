@@ -3,7 +3,7 @@ import { CollabProvider } from 'quoin-collab-client';
 import type { Authorization } from '../../src/auth.ts';
 import { createCollabServer, type CollabServer, type CollabServerOptions } from '../../src/server.ts';
 import { guest, replyTo, type User } from '../comments/store.ts';
-import { socketsTo } from '../fake-socket.ts';
+import { socketsTo, type FakeSocket } from '../fake-socket.ts';
 import { peer, type Peer } from '../peer.ts';
 import { settle } from '../settle.ts';
 
@@ -46,17 +46,25 @@ export function forge(attacker: Peer, victim: number, make: (doc: Y.Doc) => void
 export function commenter(first: CollabServer, token = 'guest') {
   const at = { collab: first, token };
   const denied: string[] = [];
+  const sockets: FakeSocket[] = [];
   const provider = new CollabProvider({
     url: 'wss://quoin.test/c',
     room: 'notes',
     token: () => at.token,
-    socketFactory: (url) => socketsTo(at.collab, 'notes').factory(url),
+    socketFactory: (url) => {
+      const to = socketsTo(at.collab, 'notes');
+      const socket = to.factory(url);
+      sockets.push(...to.opened);
+      return socket;
+    },
   });
   provider.on('denied', (reason) => denied.push(reason));
   provider.awareness.setLocalStateField('user', { name: 'Grace' });
   return {
     provider,
     denied,
+    /** The socket the provider is on, or was on last. */
+    socket: () => sockets.at(-1)!,
     moveTo: (collab: CollabServer) => void (at.collab = collab),
     grant: (next: string) => void (at.token = next),
   };

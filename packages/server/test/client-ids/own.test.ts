@@ -129,7 +129,7 @@ describe('a commenter writing under the client id the server assigned it', () =>
     await collab.close();
   });
 
-  it('leaves the connection open when the room lost an earlier comment, which does not come back', async () => {
+  it('is reported as refused when the room lost an earlier comment, and sends nothing more', async () => {
     const forgetful = { load: async () => null, save: async () => undefined };
     const one = serve({ persistence: forgetful });
     const grace = commenter(one);
@@ -146,8 +146,9 @@ describe('a commenter writing under the client id the server assigned it', () =>
     comment(grace, 'r-2');
     await settle();
 
-    expect(grace.denied).toEqual([]);
-    expect([...repliesOf(await held(two)).keys()]).toEqual(['r-2']);
+    expect(grace.denied).toEqual(['refused']);
+    expect(grace.provider.synced).toBe(false);
+    expect(repliesOf(await held(two)).size).toBe(0);
     await two.close();
   });
 });

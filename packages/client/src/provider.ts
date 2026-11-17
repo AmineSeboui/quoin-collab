@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { Awareness, removeAwarenessStates } from 'y-protocols/awareness';
 import { awarenessFrame, syncStep1, syncUpdate } from './protocol/index.ts';
+import { AssignedIds } from './assigned-ids.ts';
 import { backoff, type Backoff } from './backoff.ts';
 import { Emitter } from './emitter.ts';
 import { handleFrame } from './handle-frame.ts';
@@ -44,6 +45,7 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   private retry: ReturnType<typeof setTimeout> | null = null;
   private readonly delay: Backoff = backoff();
   private readonly origin = Object.freeze({ provider: 'quoin-collab' });
+  private readonly assigned = new AssignedIds();
   private readonly ownsDoc: boolean;
   private readonly ownsAwareness: boolean;
   private wanted: boolean;
@@ -155,6 +157,7 @@ export class CollabProvider extends Emitter<ProviderEvents> {
 
   private onOpen(): void {
     this.heard = false;
+    this.assigned.startConnection();
     this.setStatus('connected');
     this.send(syncStep1(this.doc));
     const local = this.awareness.getLocalState();
@@ -167,17 +170,30 @@ export class CollabProvider extends Emitter<ProviderEvents> {
       doc: this.doc,
       awareness: this.awareness,
       origin: this.origin,
-      send: (data) => this.send(data),
+      answer: (stepTwo) => this.answer(stepTwo),
       onSynced: () => this.setSynced(true),
-      onDenied: (reason) => {
-        this.wanted = false;
-        this.emit('denied', reason);
-      },
+      onDenied: (reason) => this.deny(reason),
       onClientId: (clientID) => {
+        this.assigned.assign(clientID);
         this.doc.clientID = clientID;
       },
     });
     this.heard = true;
+  }
+
+  /** A change the server will never take is reported as the server reports one it refuses. */
+  private answer(stepTwo: Uint8Array): void {
+    if (!this.assigned.carriesLostChange(stepTwo)) {
+      this.send(stepTwo);
+      return;
+    }
+    this.deny('refused');
+    this.teardown(1000, 'a change never reached the server');
+  }
+
+  private deny(reason: string): void {
+    this.wanted = false;
+    this.emit('denied', reason);
   }
 
   private onClose(): void {
