@@ -4,6 +4,7 @@ import { CollabProvider } from 'quoin-collab-client';
 import type { Authorization } from '../src/auth.ts';
 import { judgeCommentUpdate } from '../src/comments/judge.ts';
 import type { MeterEvent } from '../src/meter.ts';
+import { MESSAGE_CLIENT_ID } from '../src/protocol/index.ts';
 import { REFUSED_CODE, REFUSED_REASON } from '../src/refusal.ts';
 import { createCollabServer, type CollabServer } from '../src/server.ts';
 import { copyOf } from './comments/room.ts';
@@ -21,6 +22,8 @@ const GRANTS: Record<string, Authorization> = {
   writer: {},
   reader: { readOnly: true },
   guest: { readOnly: true, canComment: true, subject: guest.id },
+  nobody: { readOnly: true, canComment: true },
+  'empty-subject': { readOnly: true, canComment: true, subject: '' },
 };
 
 const textOf = (doc: Y.Doc) => doc.getText('quoin').toString();
@@ -128,6 +131,23 @@ describe('a comment-only connection', () => {
     expect(reader.events).toEqual([]);
     expect(textOf(member.doc)).toBe('hello world');
     expect(textOf(await held())).toBe('hello world');
+    expect(refusals()).toEqual([]);
+    expect(judgeCommentUpdate).not.toHaveBeenCalled();
+    await collab.close();
+  });
+
+  it.each(['nobody', 'empty-subject'])('a comment grant naming no subject is served as a reader (%s)', async (token) => {
+    const { collab, member, held, refusals } = await room();
+    const nobody = await peer(collab, 'notes', token);
+    await settle();
+
+    nobody.send(nobody.change(reply('r-1')));
+    await settle();
+
+    expect(nobody.frames).not.toContain(MESSAGE_CLIENT_ID);
+    expect(nobody.events).toEqual([]);
+    expect(repliesOf(member.doc).has('r-1')).toBe(false);
+    expect(repliesOf(await held()).has('r-1')).toBe(false);
     expect(refusals()).toEqual([]);
     expect(judgeCommentUpdate).not.toHaveBeenCalled();
     await collab.close();

@@ -44,9 +44,10 @@ export function openConnection({
   onError,
 }: ConnectionOptions): ConnectionHandle {
   const clients = new Set<number>();
+  // A commenter writes as its subject, so a grant that names nobody could own no comment: it is served as a reader.
   const comments =
-    access === 'comment'
-      ? commenter({ room, sink, subject: subject ?? '', field: commentField, maxUpdateBytes: maxCommentUpdateBytes, meter })
+    access === 'comment' && subject
+      ? commenter({ room, sink, subject, field: commentField, maxUpdateBytes: maxCommentUpdateBytes, meter })
       : null;
   let refused = false;
 
