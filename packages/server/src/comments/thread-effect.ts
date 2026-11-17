@@ -1,14 +1,16 @@
 import type * as Y from 'yjs';
 import { isSubject, startedBy } from './authors.ts';
+import { isNear, type CommentClock } from './clock.ts';
 import { isIsoDate } from './iso-date.ts';
 import { isRecord, sameJson } from './json.ts';
 import type { KeyChanges } from './key-changes.ts';
 
-const isNewThread = (key: string, value: unknown, subject: string) =>
+const isNewThread = (key: string, value: unknown, subject: string, clock: CommentClock) =>
   isRecord(value) &&
   value.id === key &&
   typeof value.resolved === 'boolean' &&
   isIsoDate(value.createdAt) &&
+  isNear(value.createdAt, clock) &&
   isSubject(value.startedBy, subject);
 
 function onlyResolvedDiffers(stored: Record<string, unknown>, value: unknown): boolean {
@@ -27,11 +29,12 @@ export function threadRefusal(
   threads: Y.Map<unknown>,
   threadIds: ReadonlySet<string>,
   subject: string,
+  clock: CommentClock,
 ): string | null {
   for (const [key, { action, oldValue }] of changes) {
     const value = threads.get(key);
     if (action === 'add' && threadIds.has(key)) return 'brings back a deleted thread';
-    if (action === 'add' && !isNewThread(key, value, subject)) return 'adds a thread it may not';
+    if (action === 'add' && !isNewThread(key, value, subject, clock)) return 'adds a thread it may not';
     if (action === 'update' && !(startedBy(oldValue, subject) && onlyResolvedDiffers(oldValue, value))) {
       return 'changes a thread it may not';
     }

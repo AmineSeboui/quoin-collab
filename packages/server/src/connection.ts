@@ -23,6 +23,7 @@ export type ConnectionOptions = {
   subject?: string;
   commentField?: string;
   maxCommentUpdateBytes: number;
+  commentClockSkewMs?: number;
   meter: Meter;
   onError: (error: Error) => void;
 };
@@ -40,6 +41,7 @@ export function openConnection({
   subject,
   commentField,
   maxCommentUpdateBytes,
+  commentClockSkewMs,
   meter,
   onError,
 }: ConnectionOptions): ConnectionHandle {
@@ -47,7 +49,9 @@ export function openConnection({
   // A commenter writes as its subject, so a grant that names nobody could own no comment: it is served as a reader.
   const comments =
     access === 'comment' && subject
-      ? commenter({ room, sink, subject, field: commentField, maxUpdateBytes: maxCommentUpdateBytes, meter })
+      ? commenter({ room, sink, subject, field: commentField, maxUpdateBytes: maxCommentUpdateBytes,
+        clockSkewMs: commentClockSkewMs,
+        meter })
       : null;
   let refused = false;
 

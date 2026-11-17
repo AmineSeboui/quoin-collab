@@ -1,4 +1,5 @@
 import * as Y from 'yjs';
+import type { CommentClock } from './clock.ts';
 import { keyChangesOf } from './key-changes.ts';
 import { marksOf } from './marks.ts';
 import { replyRefusal } from './reply-effect.ts';
@@ -31,12 +32,17 @@ function kindRefusal(changed: Y.Transaction['changed'], scratch: Scratch): strin
   return null;
 }
 
-function commentRefusal(events: Events, { threads, replies, threadIds }: Scratch, subject: string): string | null {
+function commentRefusal(
+  events: Events,
+  { threads, replies, threadIds }: Scratch,
+  subject: string,
+  clock: CommentClock,
+): string | null {
   const threadChanges = keyChangesOf(events.get(threads));
   const replyChanges = keyChangesOf(events.get(replies));
   return (
-    threadRefusal(threadChanges, threads, threadIds, subject) ??
-    replyRefusal(replyChanges, replies, subject, deletedThreads(threadChanges))
+    threadRefusal(threadChanges, threads, threadIds, subject, clock) ??
+    replyRefusal(replyChanges, replies, subject, deletedThreads(threadChanges), clock)
   );
 }
 
@@ -50,7 +56,12 @@ function markRefusal(changed: Y.Transaction['changed'], scratch: Scratch, subjec
 }
 
 /** Why what `transaction` changed may not reach the room, or null when every change is one the subject may make. */
-export const refusalOf = (transaction: Y.Transaction, scratch: Scratch, subject: string): string | null =>
+export const refusalOf = (
+  transaction: Y.Transaction,
+  scratch: Scratch,
+  subject: string,
+  clock: CommentClock,
+): string | null =>
   kindRefusal(transaction.changed, scratch) ??
-  commentRefusal(ownEventsOf(transaction), scratch, subject) ??
+  commentRefusal(ownEventsOf(transaction), scratch, subject, clock) ??
   markRefusal(transaction.changed, scratch, subject);

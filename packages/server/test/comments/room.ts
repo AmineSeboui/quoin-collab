@@ -61,3 +61,6 @@ export const changeOn = (doc: Y.Doc, make: (doc: Y.Doc) => void): Uint8Array => 
 
 export const judge = (doc: Y.Doc, update: Uint8Array, field?: string): Judgement =>
   judgeCommentUpdate(doc, update, SUBJECT, field);
+
+export const judgeAt = (doc: Y.Doc, update: Uint8Array, now: number, skewMs?: number): Judgement =>
+  judgeCommentUpdate(doc, update, SUBJECT, undefined, { now, skewMs: skewMs ?? 600_000 });

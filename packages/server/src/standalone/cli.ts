@@ -2,6 +2,7 @@
 import { createCollabServer } from '../server.ts';
 import { metricsMeter } from '../metrics.ts';
 import { tokenAuthorize } from '../token.ts';
+import { commentOptionsFromEnv } from './comment-env.ts';
 import { startStandalone } from './http-server.ts';
 import { storesFromEnv } from './stores.ts';
 
@@ -25,8 +26,7 @@ const collab = createCollabServer({
   fanout,
   authorize: secret ? tokenAuthorize(secret) : undefined,
   meter: metrics,
-  commentField: env.QUOIN_COLLAB_COMMENT_FIELD || undefined,
-  maxCommentUpdateBytes: Number(env.QUOIN_COLLAB_MAX_COMMENT_UPDATE_BYTES) || undefined,
+  ...commentOptionsFromEnv(env),
 });
 
 const { close } = await startStandalone({ collab, port, host: env.HOST, metrics, metricsToken });

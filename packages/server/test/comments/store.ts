@@ -6,7 +6,7 @@ export type User = { id: string; name: string; avatarUrl?: string };
 export const guest: User = { id: SUBJECT, name: 'Grace' };
 export const member: User = { id: 'member-1', name: 'Ada' };
 
-const CREATED = '2026-11-17T09:00:00.000Z';
+const created = () => new Date().toISOString();
 
 type Stored = Record<string, unknown>;
 
@@ -14,19 +14,19 @@ export const threadsOf = (doc: Y.Doc, field = 'comment') => doc.getMap<unknown>(
 export const repliesOf = (doc: Y.Doc, field = 'comment') => doc.getMap<unknown>(`${field}-replies`);
 
 /** A thread's value as `yjsCommentThreads` writes it; one written before 2.5.0 has no `startedBy`. */
-export const thread = (id: string, startedBy?: User): Stored => ({
+export const thread = (id: string, startedBy?: User, createdAt = created()): Stored => ({
   id,
   resolved: false,
-  createdAt: CREATED,
+  createdAt,
   ...(startedBy && { startedBy }),
 });
 
-export const reply = (id: string, threadId: string, author: User): Stored => ({
+export const reply = (id: string, threadId: string, author: User, createdAt = created()): Stored => ({
   id,
   threadId,
   author,
   body: 'Agreed.',
-  createdAt: CREATED,
+  createdAt,
 });
 
 export const startThread = (doc: Y.Doc, id: string, user: User | undefined, field?: string) =>

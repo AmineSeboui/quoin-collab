@@ -23,6 +23,8 @@ export type CollabServerOptions = {
   commentField?: string;
   /** The largest update, in bytes, a comment-only connection may send; a larger one is refused. 65536 by default. */
   maxCommentUpdateBytes?: number;
+  /** How far, in milliseconds, a new comment's date may be from the server's clock; a comment dated further off is refused. 600000 by default. */
+  commentClockSkewMs?: number;
   serverId?: string;
   /** How long a change waits before the room is written out. */
   saveAfterMs?: number;
@@ -75,6 +77,7 @@ export function createCollabServer(options: CollabServerOptions = {}): CollabSer
         subject: granted.subject,
         commentField: options.commentField || undefined,
         maxCommentUpdateBytes: options.maxCommentUpdateBytes ?? MAX_COMMENT_UPDATE_BYTES,
+        commentClockSkewMs: options.commentClockSkewMs,
         meter,
         onError,
       });

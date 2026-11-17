@@ -1,6 +1,7 @@
 import { deniedFrame } from './protocol/index.ts';
 import { assignClientId } from './client-ids/assign.ts';
 import { writtenOnlyUnder } from './client-ids/written-under.ts';
+import { clockAt } from './comments/clock.ts';
 import { judgeCommentUpdate } from './comments/judge.ts';
 import type { Meter } from './meter.ts';
 import { REFUSED_CODE, REFUSED_REASON } from './refusal.ts';
@@ -24,6 +25,7 @@ type CommenterOptions = {
   subject: string;
   field?: string;
   maxUpdateBytes: number;
+  clockSkewMs?: number;
   meter: Meter;
 };
 
@@ -33,12 +35,12 @@ type CommenterOptions = {
  * the room. A refused handshake is dropped and the connection kept, since it carries changes their own authors still
  * hold; a refused live change closes it, so the commenter learns it was not saved.
  */
-export function commenter({ room, sink, subject, field, maxUpdateBytes, meter }: CommenterOptions): Commenter {
+export function commenter({ room, sink, subject, field, maxUpdateBytes, clockSkewMs, meter }: CommenterOptions): Commenter {
   const assignment = assignClientId(room);
   const allowed = (update: Uint8Array) =>
     update.length <= maxUpdateBytes &&
     writtenOnlyUnder(update, assignment.clientID) &&
-    judgeCommentUpdate(room.doc, update, subject, field).ok;
+    judgeCommentUpdate(room.doc, update, subject, field, clockAt(Date.now(), clockSkewMs)).ok;
 
   return {
     clientID: assignment.clientID,
