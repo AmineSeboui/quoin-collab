@@ -19,8 +19,7 @@ export type Authorization = {
   room?: string;
   /**
    * Who the host's own token said this is, as an opaque id. The meter counts it, and a comment-only connection
-   * may write comments only as the author with this id. The room records it beside the Yjs client ids such a
-   * connection writes under, so its other clients can read it there, as they can in the comments themselves.
+   * may write comments only as the author with this id; the server never sends it to another client.
    */
   subject?: string;
 };

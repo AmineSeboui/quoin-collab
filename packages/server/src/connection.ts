@@ -1,6 +1,7 @@
 import * as decoding from 'lib0/decoding';
 import { messageYjsSyncStep1, messageYjsSyncStep2 } from 'y-protocols/sync';
 import {
+  clientIdFrame,
   MESSAGE_AWARENESS,
   MESSAGE_QUERY_AWARENESS,
   MESSAGE_SYNC,
@@ -44,6 +45,7 @@ export function openConnection({ room, sink, access, subject, meter, onError }: 
   room.attach(sink);
   meter.record({ kind: 'connection.opened', room: room.name, subject });
 
+  if (comments !== null) sink.send(clientIdFrame(comments.clientID));
   sink.send(syncStep1(room.doc));
   const present = room.awarenessSnapshot();
   if (present !== null) sink.send(present);

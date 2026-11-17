@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { COMMENTERS } from '../../src/client-ids/claims.ts';
 import { memoryFanout } from '../../src/fanout/memory.ts';
 import { memoryPersistence } from '../../src/persistence/memory.ts';
-import { guest, repliesOf, replyTo } from '../comments/store.ts';
+import { repliesOf } from '../comments/store.ts';
 import { peer } from '../peer.ts';
 import { settle } from '../settle.ts';
-import { commenter, forge, held, lin, REFUSED, reply, serve, textOf, write } from './setup.ts';
+import { forge, held, lin, REFUSED, reply, serve, textOf, write } from './setup.ts';
 
-describe('a commenter writing under a client id that is not its own', () => {
+/** A writer who has announced herself and not written yet, with her first edit made and not yet sent. */
+async function quietWriter(collab: Parameters<typeof peer>[0]) {
+  const ada = await peer(collab, 'notes', 'writer');
+  ada.announce();
+  return { ada, firstEdit: () => ada.change(write('first words')) };
+}
+
+describe('a commenter writing under a client id the server did not assign it', () => {
   it('is refused for a writer’s id from the state vector, and the writer’s edit there still lands', async () => {
     const collab = serve();
     const ada = await peer(collab, 'notes', 'writer');
@@ -29,13 +35,14 @@ describe('a commenter writing under a client id that is not its own', () => {
     await collab.close();
   });
 
-  it('is refused for an id another connection here announced before any commenter came', async () => {
+  it('is refused for a quiet writer’s id a reader has cleared from presence', async () => {
     const collab = serve();
-    const ada = await peer(collab, 'notes', 'writer');
-    ada.announce();
+    const { ada, firstEdit } = await quietWriter(collab);
     const mallory = await peer(collab, 'notes', 'guest');
+    const accomplice = await peer(collab, 'notes', 'reader');
+    accomplice.announce(ada.doc.clientID, 1000, false);
     await settle();
-    const inFlight = ada.change(write('first words'));
+    const inFlight = firstEdit();
 
     forge(mallory, ada.doc.clientID, reply('r-forged'));
     ada.send(inFlight);
@@ -46,14 +53,15 @@ describe('a commenter writing under a client id that is not its own', () => {
     await collab.close();
   });
 
-  it('is refused for an id another connection announced first, though the commenter announces it too', async () => {
+  it('is refused for a quiet writer’s id a reader has repeated and then left with', async () => {
     const collab = serve();
+    const { ada, firstEdit } = await quietWriter(collab);
     const mallory = await peer(collab, 'notes', 'guest');
-    const ada = await peer(collab, 'notes', 'writer');
-    ada.announce();
-    mallory.announce(ada.doc.clientID, 2);
+    const accomplice = await peer(collab, 'notes', 'reader');
+    accomplice.announce(ada.doc.clientID, 2);
+    accomplice.leave();
     await settle();
-    const inFlight = ada.change(write('first words'));
+    const inFlight = firstEdit();
 
     forge(mallory, ada.doc.clientID, reply('r-forged'));
     ada.send(inFlight);
@@ -64,16 +72,17 @@ describe('a commenter writing under a client id that is not its own', () => {
     await collab.close();
   });
 
-  it('is refused for an id announced on another process, which arrives through the fanout', async () => {
+  it('is refused for a quiet writer’s id cleared on another process', async () => {
     const fanout = memoryFanout();
     const persistence = memoryPersistence();
     const one = serve({ fanout, persistence, serverId: 'one' });
     const two = serve({ fanout, persistence, serverId: 'two' });
     const mallory = await peer(two, 'notes', 'guest');
-    const ada = await peer(one, 'notes', 'writer');
-    ada.announce();
+    const { ada, firstEdit } = await quietWriter(one);
+    const accomplice = await peer(one, 'notes', 'reader');
+    accomplice.announce(ada.doc.clientID, 1000, false);
     await settle();
-    const inFlight = ada.change(write('first words'));
+    const inFlight = firstEdit();
 
     forge(mallory, ada.doc.clientID, reply('r-forged'));
     ada.send(inFlight);
@@ -84,59 +93,73 @@ describe('a commenter writing under a client id that is not its own', () => {
     await Promise.all([one.close(), two.close()]);
   });
 
-  it('is refused for another commenter’s id, once it has written', async () => {
+  it('is refused for a quiet writer’s id the commenter alone has repeated', async () => {
+    const collab = serve();
+    const { ada, firstEdit } = await quietWriter(collab);
+    const mallory = await peer(collab, 'notes', 'guest');
+    mallory.announce(ada.doc.clientID, 1000);
+    await settle();
+    const inFlight = firstEdit();
+
+    forge(mallory, ada.doc.clientID, reply('r-forged'));
+    ada.send(inFlight);
+    await settle();
+
+    expect(mallory.events).toEqual(REFUSED);
+    expect(textOf(await held(collab))).toBe('first words');
+    await collab.close();
+  });
+
+  it('is refused for the id assigned to another commenter, before and after it writes', async () => {
     const collab = serve();
     const grace = await peer(collab, 'notes', 'guest');
-    grace.announce();
-    grace.send(grace.change(reply('r-1')));
     const mallory = await peer(collab, 'notes', 'lin');
+    await settle();
+    const before = grace.change(reply('r-1'));
+
+    forge(mallory, grace.assigned!, reply('r-lin', lin));
+    grace.send(before);
+    const later = await peer(collab, 'notes', 'lin');
     await settle();
     const inFlight = grace.change(reply('r-2'));
-
-    forge(mallory, grace.doc.clientID, reply('r-lin', lin));
+    forge(later, grace.assigned!, reply('r-lin', lin));
     grace.send(inFlight);
     await settle();
 
-    const room = await held(collab);
     expect(mallory.events).toEqual(REFUSED);
+    expect(later.events).toEqual(REFUSED);
     expect(grace.events).toEqual([]);
-    expect([...repliesOf(room).keys()].sort()).toEqual(['r-1', 'r-2']);
+    expect([...repliesOf(await held(collab)).keys()].sort()).toEqual(['r-1', 'r-2']);
     await collab.close();
   });
 
-  it('cannot be made its own by writing the record of claims itself', async () => {
+  it('is refused from a client that ignores the id it was assigned', async () => {
     const collab = serve();
-    const ada = await peer(collab, 'notes', 'writer');
-    ada.send(ada.change(write('hello')));
-    const grace = commenter(collab);
-    await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
-    const mallory = await peer(collab, 'notes', 'lin');
+    const stubborn = await peer(collab, 'notes', 'guest', { adopt: false });
     await settle();
 
-    mallory.send(mallory.change((doc) => doc.getMap(COMMENTERS).set(String(ada.doc.clientID), lin.id)));
+    stubborn.send(stubborn.change(reply('r-1')));
     await settle();
 
-    expect(mallory.events).toEqual(REFUSED);
-    expect((await held(collab)).getMap(COMMENTERS).has(String(ada.doc.clientID))).toBe(false);
+    expect(stubborn.assigned).not.toBe(stubborn.doc.clientID);
+    expect(stubborn.events).toEqual(REFUSED);
+    expect(repliesOf(await held(collab)).size).toBe(0);
     await collab.close();
   });
 
-  it('is refused for another commenter’s id it has only announced', async () => {
+  it('is refused when one update writes under its assigned id and another', async () => {
     const collab = serve();
     const grace = await peer(collab, 'notes', 'guest');
-    grace.announce();
-    const mallory = await peer(collab, 'notes', 'lin');
     await settle();
-    const inFlight = grace.change(reply('r-1'));
+    const own = grace.change(reply('r-1'));
+    grace.doc.clientID = 7;
+    const other = grace.change(reply('r-2'));
 
-    forge(mallory, grace.doc.clientID, reply('r-lin', lin));
-    grace.send(inFlight);
+    grace.send(Y.mergeUpdates([own, other]));
     await settle();
 
-    expect(mallory.events).toEqual(REFUSED);
-    expect(grace.events).toEqual([]);
-    expect([...repliesOf(await held(collab)).keys()]).toEqual(['r-1']);
+    expect(grace.events).toEqual(REFUSED);
+    expect(repliesOf(await held(collab)).size).toBe(0);
     await collab.close();
   });
 });

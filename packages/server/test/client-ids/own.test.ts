@@ -1,53 +1,57 @@
 import { describe, expect, it } from 'vitest';
-import * as Y from 'yjs';
 import { memoryFanout } from '../../src/fanout/memory.ts';
 import { memoryPersistence } from '../../src/persistence/memory.ts';
+import { MESSAGE_CLIENT_ID, MESSAGE_SYNC } from '../../src/protocol/index.ts';
 import { guest, repliesOf, replyTo } from '../comments/store.ts';
 import { peer } from '../peer.ts';
 import { settle } from '../settle.ts';
-import { commenter, held, lin, reply, serve, write } from './setup.ts';
+import { commenter, held, serve, textOf } from './setup.ts';
 
-describe('a commenter writing under its own client id', () => {
-  it('is accepted the first time, under an id the room has never seen', async () => {
+const comment = (client: ReturnType<typeof commenter>, id: string) => replyTo(client.provider.doc, 't-1', id, guest);
+
+describe('a commenter writing under the client id the server assigned it', () => {
+  it('lands, through quoin-collab-client, under that id rather than the document’s own', async () => {
     const collab = serve();
     const grace = commenter(collab);
+    const original = grace.provider.doc.clientID;
     await settle();
 
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
 
     expect(grace.denied).toEqual([]);
+    expect(grace.provider.doc.clientID).not.toBe(original);
     expect(repliesOf(await held(collab)).has('r-1')).toBe(true);
     await collab.close();
   });
 
-  it('still works after a reconnect to the same room', async () => {
+  it('lands after a reconnect to the same room, under a new id', async () => {
     const collab = serve();
     const ada = await peer(collab, 'notes', 'writer');
-    ada.announce();
     const grace = commenter(collab);
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
+    const first = grace.provider.doc.clientID;
 
     grace.provider.disconnect();
-    await settle();
     grace.provider.connect();
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-2', guest);
+    comment(grace, 'r-2');
     await settle();
 
     expect(grace.denied).toEqual([]);
-    expect([...repliesOf(await held(collab)).keys()].sort()).toEqual(['r-1', 'r-2']);
+    expect(grace.provider.doc.clientID).not.toBe(first);
+    expect([...repliesOf(ada.doc).keys()].sort()).toEqual(['r-1', 'r-2']);
     await collab.close();
   });
 
-  it('still works after a reconnect to a room freshly loaded from storage', async () => {
+  it('lands after a reconnect to a room freshly loaded from storage', async () => {
     const persistence = memoryPersistence();
     const one = serve({ persistence });
     const grace = commenter(one);
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
     grace.provider.disconnect();
     await one.close();
@@ -56,7 +60,7 @@ describe('a commenter writing under its own client id', () => {
     grace.moveTo(two);
     grace.provider.connect();
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-2', guest);
+    comment(grace, 'r-2');
     await settle();
 
     expect(grace.denied).toEqual([]);
@@ -64,7 +68,7 @@ describe('a commenter writing under its own client id', () => {
     await two.close();
   });
 
-  it('still works after a reconnect to another process serving the room', async () => {
+  it('lands after a reconnect to another process serving the room', async () => {
     const fanout = memoryFanout();
     const persistence = memoryPersistence();
     const one = serve({ fanout, persistence, serverId: 'one' });
@@ -72,14 +76,14 @@ describe('a commenter writing under its own client id', () => {
     const ada = await peer(two, 'notes', 'writer');
     const grace = commenter(one);
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
 
     grace.provider.disconnect();
     grace.moveTo(two);
     grace.provider.connect();
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-2', guest);
+    comment(grace, 'r-2');
     await settle();
 
     expect(grace.denied).toEqual([]);
@@ -87,32 +91,29 @@ describe('a commenter writing under its own client id', () => {
     await Promise.all([one.close(), two.close()]);
   });
 
-  it('still works for a first comment after moving to another process', async () => {
-    const fanout = memoryFanout();
-    const persistence = memoryPersistence();
-    const one = serve({ fanout, persistence, serverId: 'one' });
-    const two = serve({ fanout, persistence, serverId: 'two' });
-    const watcher = await peer(two, 'notes', 'lin');
-    const grace = commenter(one);
+  it('lands for a writer who may now only comment, on the same page', async () => {
+    const collab = serve();
+    const grace = commenter(collab, 'writer');
+    await settle();
+    grace.provider.doc.getText('quoin').insert(0, 'written as an editor');
     await settle();
 
     grace.provider.disconnect();
-    await settle();
-    grace.moveTo(two);
+    grace.grant('guest');
     grace.provider.connect();
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
 
+    const room = await held(collab);
     expect(grace.denied).toEqual([]);
-    expect(repliesOf(watcher.doc).has('r-1')).toBe(true);
-    await Promise.all([one.close(), two.close()]);
+    expect(textOf(room)).toBe('written as an editor');
+    expect(repliesOf(room).has('r-1')).toBe(true);
+    await collab.close();
   });
 
-  it('is accepted under the id its reading connection announced, once the reader may comment', async () => {
+  it('lands for a reader who may now comment, on the same page', async () => {
     const collab = serve();
-    const ada = await peer(collab, 'notes', 'writer');
-    await peer(collab, 'notes', 'lin');
     const grace = commenter(collab, 'reader-grace');
     await settle();
 
@@ -120,38 +121,20 @@ describe('a commenter writing under its own client id', () => {
     grace.grant('guest');
     grace.provider.connect();
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
 
     expect(grace.denied).toEqual([]);
-    expect(repliesOf(ada.doc).has('r-1')).toBe(true);
+    expect(repliesOf(await held(collab)).has('r-1')).toBe(true);
     await collab.close();
   });
 
-  it('is recorded under one client id of the room’s own, however many commenters claim', async () => {
-    const collab = serve();
-    const ada = await peer(collab, 'notes', 'writer');
-    ada.send(ada.change(write('hello')));
-    const grace = await peer(collab, 'notes', 'guest');
-    const mallory = await peer(collab, 'notes', 'lin');
-    await settle();
-
-    grace.send(grace.change(reply('r-1')));
-    mallory.send(mallory.change(reply('r-2', lin)));
-    await settle();
-
-    const room = await held(collab);
-    expect([...repliesOf(room).keys()].sort()).toEqual(['r-1', 'r-2']);
-    expect(Y.decodeStateVector(Y.encodeStateVector(room)).size).toBe(4);
-    await collab.close();
-  });
-
-  it('brings back, in its sync step 2, its own comments a room lost', async () => {
+  it('leaves the connection open when the room lost an earlier comment, which does not come back', async () => {
     const forgetful = { load: async () => null, save: async () => undefined };
     const one = serve({ persistence: forgetful });
     const grace = commenter(one);
     await settle();
-    replyTo(grace.provider.doc, 't-1', 'r-1', guest);
+    comment(grace, 'r-1');
     await settle();
     grace.provider.disconnect();
     await one.close();
@@ -160,9 +143,27 @@ describe('a commenter writing under its own client id', () => {
     grace.moveTo(two);
     grace.provider.connect();
     await settle();
+    comment(grace, 'r-2');
+    await settle();
 
     expect(grace.denied).toEqual([]);
-    expect(repliesOf(await held(two)).has('r-1')).toBe(true);
+    expect([...repliesOf(await held(two)).keys()]).toEqual(['r-2']);
     await two.close();
+  });
+});
+
+describe('the client id frame', () => {
+  it('reaches a commenter first, before its sync step 1, and never a writer or a reader', async () => {
+    const collab = serve();
+    const grace = await peer(collab, 'notes', 'guest');
+    const ada = await peer(collab, 'notes', 'writer');
+    const reader = await peer(collab, 'notes', 'reader');
+    await settle();
+
+    expect(grace.frames.slice(0, 2)).toEqual([MESSAGE_CLIENT_ID, MESSAGE_SYNC]);
+    expect(grace.assigned).not.toBeNull();
+    expect(ada.frames).not.toContain(MESSAGE_CLIENT_ID);
+    expect(reader.frames).not.toContain(MESSAGE_CLIENT_ID);
+    await collab.close();
   });
 });

@@ -27,6 +27,13 @@ const textOf = (doc: Y.Doc) => doc.getText('quoin').toString();
 const insertText = (doc: Y.Doc) => doc.getText('quoin').insert(0, 'not yours ');
 const reply = (id: string) => (doc: Y.Doc) => replyTo(doc, 't-1', id, guest);
 
+/** A copy of `doc` writing under `doc`'s client id, for a second change the first does not depend on. */
+const beside = (doc: Y.Doc) => {
+  const copy = copyOf(doc);
+  copy.doc.clientID = doc.clientID;
+  return copy;
+};
+
 const join = (collab: CollabServer, token: string, socketFactory = socketsTo(collab, 'notes').factory) =>
   new CollabProvider({ url: 'wss://quoin.test/c', room: 'notes', token, socketFactory });
 
@@ -74,7 +81,7 @@ describe('a comment-only connection', () => {
     const { collab, member, held, refusals } = await room();
     const grace = await peer(collab, 'notes', 'guest');
     await settle();
-    const later = copyOf(grace.doc).change(reply('r-after'));
+    const later = beside(grace.doc).change(reply('r-after'));
 
     grace.send(grace.change(insertText));
     grace.send(later);
@@ -95,7 +102,7 @@ describe('a comment-only connection', () => {
     const grace = await peer(collab, 'notes', 'guest');
     await settle();
 
-    grace.send(copyOf(grace.doc).change(insertText), 'handshake');
+    grace.send(beside(grace.doc).change(insertText), 'handshake');
     await settle();
     expect(textOf(await held())).toBe('hello world');
 

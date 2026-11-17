@@ -40,9 +40,8 @@ export function forge(attacker: Peer, victim: number, make: (doc: Y.Doc) => void
 }
 
 /**
- * A commenter's client, keeping one document across connections, that can be pointed at another server or handed
- * another token between them. It names its user, as an editor does, which is what makes its presence count: a state
- * still at its first clock is ignored by whoever receives it.
+ * A client, keeping one document across connections, that can be pointed at another server or handed another token
+ * between them. It names its user, as an editor does.
  */
 export function commenter(first: CollabServer, token = 'guest') {
   const at = { collab: first, token };
