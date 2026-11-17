@@ -1,6 +1,6 @@
 {
   "name": "quoin-collab-client",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "The browser provider for Quoin's collaboration server: one WebSocket, awareness, and a short lived token refreshed on every reconnect.",
   "license": "MIT",
   "author": {

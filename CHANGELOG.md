@@ -3,7 +3,7 @@
 Both packages are released together under one version, so a tag names the state of the whole wire: a
 client and a server from the same release always understand each other. Newest first.
 
-## Unreleased
+## 0.3.0 (2026-11-17)
 
 ### Added
 - Comment-only access. A token with `readOnly: true` and `canComment: true` opens a connection that can add and
