@@ -20,6 +20,8 @@ client and a server from the same release always understand each other. Newest f
   client id, and the commenter may write only under it. `quoin-collab-client` adopts it, so `doc.clientID`
   changes after connect; a cursor plugin comparing awareness ids with the document's id should know. A 0.2
   client or a y-websocket client holding a comment token ignores the frame and is refused.
+- `commentField` on `createCollabServer`, and `QUOIN_COLLAB_COMMENT_FIELD` for the standalone server, name the
+  field the editor's comment store uses; it defaults to `comment`.
 - `CollabProvider` stops reconnecting and emits `denied` when an update is refused.
 
 ## 0.2.1 (2026-11-15)
