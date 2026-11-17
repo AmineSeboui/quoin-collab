@@ -18,6 +18,7 @@ export class FakeSocket {
   onerror: (() => void) | null = null;
 
   private handle: ConnectionHandle | null = null;
+  private severed = false;
   private readonly pendingToServer: Uint8Array[] = [];
   private readonly pendingToClient: Uint8Array[] = [];
 
@@ -26,7 +27,13 @@ export class FakeSocket {
     close: () => this.close(),
   };
 
+  /** Stops carrying frames either way while both ends still take it for open, as a network that died does. */
+  sever(): void {
+    this.severed = true;
+  }
+
   send(data: ArrayBuffer | Uint8Array): void {
+    if (this.severed) return;
     const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new Uint8Array(data);
     if (this.handle === null) this.pendingToServer.push(bytes);
     else this.handle.receive(bytes);
@@ -58,6 +65,7 @@ export class FakeSocket {
   }
 
   private deliver(data: Uint8Array): void {
+    if (this.severed) return;
     if (this.readyState !== OPEN || this.onmessage === null) this.pendingToClient.push(new Uint8Array(data));
     else this.emit(data);
   }

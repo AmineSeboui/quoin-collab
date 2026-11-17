@@ -6,9 +6,12 @@ export const MESSAGE_SYNC = 0;
 export const MESSAGE_AWARENESS = 1;
 export const MESSAGE_AUTH = 2;
 export const MESSAGE_QUERY_AWARENESS = 3;
+/** Quoin's own: the Yjs client id the server assigns a comment-only connection, sent before anything else. */
+export const MESSAGE_CLIENT_ID = 4;
 
 export type MessageType =
   | typeof MESSAGE_SYNC
   | typeof MESSAGE_AWARENESS
   | typeof MESSAGE_AUTH
-  | typeof MESSAGE_QUERY_AWARENESS;
+  | typeof MESSAGE_QUERY_AWARENESS
+  | typeof MESSAGE_CLIENT_ID;

@@ -5,12 +5,14 @@ export type RoomClaims = {
   /** Seconds since the epoch, as `exp` is everywhere else. */
   exp: number;
   readOnly?: boolean;
+  /** With `readOnly`, lets the holder manage their own comments and nothing else. Alone it changes nothing. */
+  canComment?: boolean;
   /** Which tenant the room belongs to, for a deployment serving more than one. */
   project?: string;
   /**
    * An opaque id for the reader, chosen by you. A hosted deployment counts distinct subjects to bill for
    * people rather than connections, so it should be stable per person and mean nothing on its own: an
-   * internal id rather than a name or an address.
+   * internal id rather than a name or an address. A commenter's must be the author id their comments carry.
    */
   subject?: string;
 };
@@ -73,5 +75,6 @@ export const tokenAuthorize =
   ({ room, token }: { room: string; token: string | null }) => {
     if (token === null) return null;
     const claims = verifyRoomToken(token, room, secret);
-    return claims === null ? null : { readOnly: claims.readOnly === true };
+    if (claims === null) return null;
+    return { readOnly: claims.readOnly === true, canComment: claims.canComment === true || undefined, subject: claims.subject };
   };

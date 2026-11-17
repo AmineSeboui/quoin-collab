@@ -3,8 +3,8 @@
  * records nothing at all rather than writing somewhere that has to be cleaned up.
  *
  * `subject` is whatever the host's own token called the reader: an opaque id it chose, never a name or an
- * address. The server does not interpret it, and a hosted deployment should hash it before storing it, so that
- * counting people does not mean learning who they are.
+ * address. The server only compares it with the authors a comment-only connection writes as, and a hosted
+ * deployment should hash it before storing it, so that counting people does not mean learning who they are.
  */
 export type MeterEvent =
   | { kind: 'room.opened'; room: string }
@@ -17,6 +17,8 @@ export type MeterEvent =
    */
   | { kind: 'connection.refused'; reason: 'unauthorized' | 'declined' }
   | { kind: 'update.applied'; room: string; bytes: number; origin: 'client' | 'remote' }
+  /** A comment-only connection's change the rule turned away, from the reconnect handshake or sent live. */
+  | { kind: 'update.refused'; room: string; origin: 'handshake' | 'live' }
   | { kind: 'fanout.published'; message: 'update' | 'awareness' }
   | { kind: 'fanout.received'; message: 'update' | 'awareness' }
   | { kind: 'persistence.loaded'; ms: number }

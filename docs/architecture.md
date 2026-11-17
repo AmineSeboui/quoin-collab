@@ -59,10 +59,38 @@ caret disappears when its owner does rather than timing out a few seconds later.
 
 ## The protocol
 
-y-websocket's, deliberately. Four frame types, the same numbers, the same bodies. That is why either side of
-this can be replaced by a y-websocket equivalent, and why an existing Yjs deployment can move to this server
-without touching its clients.
+y-websocket's, deliberately. Four frame types, the same numbers, the same bodies, and one more, type 4, which
+only a comment connection ever receives. That is why either side of this can be replaced by a y-websocket
+equivalent, and why an existing Yjs deployment can move to this server without touching its clients. The one
+exception is a client holding a comment token, which needs the fifth frame and so needs this client; see
+Comment-only access below.
 
 The frames live in `src/protocol` in both packages, the same files in each, rather than in a package of their
 own that nobody installed on purpose. A test fails the moment the two copies differ, so the server and the
 client from one release always agree on the wire.
+
+## Comment-only access
+
+A token can grant a third level between reading and writing: a commenter, who may add and manage their own
+comments and change nothing else. A reader's updates are dropped without a word. A commenter's are judged,
+because some of them are allowed.
+
+The server applies each update from a commenter to a scratch copy of the room first and looks at what it did,
+reading text item by item as the editor does. An update that stays inside the rule is applied to the room and
+sent on as any other. One that does not, or that is larger than the bound the server is given, is never applied
+and never reaches another socket. A refused live change ends the connection. A refused sync step 2, which a
+reconnecting client sends to catch the room up, is ignored and the connection kept, since it can carry changes
+their own authors still hold. Only commenter connections pay for the scratch copy; editors and readers cost what
+they always did.
+
+To know whose changes are whose, the server sends a commenter a frame of type 4 before its own sync step 1,
+carrying a fresh random client id, and accepts writes from that connection only under it. `quoin-collab-client`
+adopts the id, so `doc.clientID` changes after connect. A cursor plugin that compares awareness ids with the
+document's id, as y-prosemirror's does, would then show the commenter's own caret as someone else's; the client
+keeps presence under the awareness id it started with. A client that ignores the frame, such as y-websocket or
+a 0.2 client, writes under an id the server did not assign and is refused.
+
+The client remembers each id it was assigned. A comment sent on a socket that died without a close never reached
+the room, and after the reconnect it sits under the old id, which the server no longer accepts. So when the
+client's answer to the server's sync step 1 carries a change under an earlier id, the client emits `denied` with
+reason `refused` and closes, as it does when the server refuses a change.

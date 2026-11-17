@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { Awareness, removeAwarenessStates } from 'y-protocols/awareness';
 import { awarenessFrame, syncStep1, syncUpdate } from './protocol/index.ts';
+import { AssignedIds } from './assigned-ids.ts';
 import { backoff, type Backoff } from './backoff.ts';
 import { Emitter } from './emitter.ts';
 import { handleFrame } from './handle-frame.ts';
@@ -44,10 +45,13 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   private retry: ReturnType<typeof setTimeout> | null = null;
   private readonly delay: Backoff = backoff();
   private readonly origin = Object.freeze({ provider: 'quoin-collab' });
+  private readonly assigned = new AssignedIds();
   private readonly ownsDoc: boolean;
   private readonly ownsAwareness: boolean;
   private wanted: boolean;
   private settled = false;
+  /** Whether the server has sent anything on this socket yet. */
+  private heard = false;
   private state: ProviderStatus = 'offline';
   private destroyed = false;
   private readonly options: CollabProviderOptions;
@@ -152,10 +156,13 @@ export class CollabProvider extends Emitter<ProviderEvents> {
   }
 
   private onOpen(): void {
+    this.heard = false;
+    this.assigned.startConnection();
     this.setStatus('connected');
     this.send(syncStep1(this.doc));
     const local = this.awareness.getLocalState();
-    if (local !== null) this.send(awarenessFrame(this.awareness, [this.doc.clientID]));
+    // Presence keeps the id its awareness was made with; the document's can change, as the server assigns one.
+    if (local !== null) this.send(awarenessFrame(this.awareness, [this.awareness.clientID]));
   }
 
   private onMessage(event: MessageEvent<ArrayBuffer>): void {
@@ -163,13 +170,30 @@ export class CollabProvider extends Emitter<ProviderEvents> {
       doc: this.doc,
       awareness: this.awareness,
       origin: this.origin,
-      send: (data) => this.send(data),
+      answer: (stepTwo) => this.answer(stepTwo),
       onSynced: () => this.setSynced(true),
-      onDenied: (reason) => {
-        this.wanted = false;
-        this.emit('denied', reason);
+      onDenied: (reason) => this.deny(reason),
+      onClientId: (clientID) => {
+        this.assigned.assign(clientID);
+        this.doc.clientID = clientID;
       },
     });
+    this.heard = true;
+  }
+
+  /** A change the server will never take is reported as the server reports one it refuses. */
+  private answer(stepTwo: Uint8Array): void {
+    if (!this.assigned.carriesLostChange(stepTwo)) {
+      this.send(stepTwo);
+      return;
+    }
+    this.deny('refused');
+    this.teardown(1000, 'a change never reached the server');
+  }
+
+  private deny(reason: string): void {
+    this.wanted = false;
+    this.emit('denied', reason);
   }
 
   private onClose(): void {
@@ -182,7 +206,7 @@ export class CollabProvider extends Emitter<ProviderEvents> {
 
   /** Carets from a connection that has ended would otherwise sit on the page until their own timeout. */
   private forgetOthers(): void {
-    const others = [...this.awareness.getStates().keys()].filter((id) => id !== this.doc.clientID);
+    const others = [...this.awareness.getStates().keys()].filter((id) => id !== this.awareness.clientID);
     if (others.length > 0) removeAwarenessStates(this.awareness, others, this.origin);
   }
 
@@ -214,8 +238,10 @@ export class CollabProvider extends Emitter<ProviderEvents> {
     this.setStatus('offline');
   }
 
+  // A change made before the server has spoken waits for the sync step 2 that answers it: a connection that may only
+  // comment is first told the client id to write under, and a change under any other is refused.
   private readonly onDocUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin !== this.origin) this.send(syncUpdate(update));
+    if (origin !== this.origin && this.heard) this.send(syncUpdate(update));
   };
 
   private readonly onAwarenessUpdate = ({ added, updated, removed }: AwarenessChange, origin: unknown) => {

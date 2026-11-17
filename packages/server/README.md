@@ -57,6 +57,12 @@ const token = signRoomToken(
 );
 ```
 
+To let someone comment without editing, sign `readOnly: true` with `canComment: true` and a `subject`, the id
+their comments are written under. They can add and manage their own comments and change nothing else. A
+connection like that needs `quoin-collab-client` 0.3, because the server gives it a client id of its own to
+write under. The rule, the `commentField` and `maxCommentUpdateBytes` options and the refusal a host should
+handle are in the self-hosting guide.
+
 The format is an HMAC over base64url JSON. `tokenAuthorize` checks it, or pass an `authorize` function of
 your own and refuse with a reason the client can read.
 

@@ -74,6 +74,18 @@ describe('what a scrape says', () => {
     expect(text).toContain('quoin_updates_applied_total{origin="client"}');
     expect(value(text, 'quoin_update_bytes_total')).toBeGreaterThan(0);
   });
+
+  it('counts a commenter’s refused change by where it came from', async () => {
+    const metrics = metricsMeter();
+    const grant = { readOnly: true, canComment: true, subject: 'guest-1' };
+    const collab = serve({ meter: metrics, authorize: () => grant });
+    const grace = open(collab, 'notes', 'guest');
+    await settle();
+    grace.doc.getText('quoin').insert(0, 'not yours');
+    await settle();
+
+    expect(metrics.render()).toContain('quoin_updates_refused_total{origin="live"} 1');
+  });
 });
 
 /**

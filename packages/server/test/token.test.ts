@@ -46,4 +46,18 @@ describe('a room token', () => {
     expect(authorize({ room: 'notes', token: writer })).toEqual({ readOnly: false });
     expect(authorize({ room: 'notes', token: null })).toBeNull();
   });
+
+  it('keeps the comment claim through verification', () => {
+    const token = signRoomToken({ room: 'notes', exp: soon(), readOnly: true, canComment: true }, secret);
+    expect(verifyRoomToken(token, 'notes', secret)?.canComment).toBe(true);
+  });
+
+  it('passes the subject and the comment claim to the connection', () => {
+    const authorize = tokenAuthorize(secret);
+    const token = signRoomToken(
+      { room: 'notes', exp: soon(), readOnly: true, canComment: true, subject: 'guest-1' },
+      secret,
+    );
+    expect(authorize({ room: 'notes', token })).toEqual({ readOnly: true, canComment: true, subject: 'guest-1' });
+  });
 });

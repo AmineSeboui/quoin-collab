@@ -27,6 +27,16 @@ y-websocket's provider, including [Quoin](https://quoincloud.com)'s collaboratio
 `token` may be a string or a function, and the function is called before every connect, so a token that
 expires in five minutes is refreshed rather than carried around.
 
+## Comment-only tokens
+
+With a token that allows commenting but not editing, the server sends this provider a client id of its own and
+the provider adopts it, so `doc.clientID` changes after the first connect. A cursor plugin that compares
+awareness ids with the document's id would show the person's own caret as someone else's; presence stays under
+the awareness id. If the server refuses a change, the provider emits `denied` with the reason `refused`, stops
+reconnecting, and the host should offer a reload. It does the same when, on reconnecting, it holds a comment the
+server never received, such as one sent on a socket that had died without a close. Offer commenting only while
+`synced` is true.
+
 ## Why not y-websocket's provider
 
 y-websocket's works. The wire is the same protocol, either end works with either, and the server this talks

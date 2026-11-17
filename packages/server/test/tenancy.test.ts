@@ -21,6 +21,19 @@ describe('a multi-tenant connection', () => {
     await expect(ask(token)).resolves.toEqual({ readOnly: false, room: `${ACME}/notes` });
   });
 
+  it('carries the comment claim and the subject', async () => {
+    const token = signRoomToken(
+      { room: 'notes', exp: soon(), readOnly: true, canComment: true, subject: 'guest-1', project: ACME },
+      'acme-secret',
+    );
+    await expect(ask(token)).resolves.toEqual({
+      readOnly: true,
+      canComment: true,
+      subject: 'guest-1',
+      room: `${ACME}/notes`,
+    });
+  });
+
   it('refuses a token claiming a project it cannot sign for', async () => {
     const forged = signRoomToken({ room: 'notes', exp: soon(), project: ACME }, 'other-secret');
     await expect(ask(forged)).resolves.toBeNull();
