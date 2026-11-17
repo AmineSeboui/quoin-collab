@@ -46,11 +46,12 @@ describe('a commenter writing under a client id that is not its own', () => {
     await collab.close();
   });
 
-  it('is refused for an id another connection here announces while a commenter is present', async () => {
+  it('is refused for an id another connection announced first, though the commenter announces it too', async () => {
     const collab = serve();
     const mallory = await peer(collab, 'notes', 'guest');
     const ada = await peer(collab, 'notes', 'writer');
     ada.announce();
+    mallory.announce(ada.doc.clientID, 2);
     await settle();
     const inFlight = ada.change(write('first words'));
 

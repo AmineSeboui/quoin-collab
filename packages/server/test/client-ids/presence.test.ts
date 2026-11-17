@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 import { Awareness, encodeAwarenessUpdate, removeAwarenessStates } from 'y-protocols/awareness';
 import { presenceIn } from '../../src/client-ids/presence.ts';
@@ -17,14 +17,15 @@ const open = () => {
 
 afterEach(() => {
   for (const room of rooms.splice(0)) room.destroy();
+  vi.restoreAllMocks();
 });
 
-/** An awareness update in which `clientID` says it is here, as a client that has named its user sends one. */
-function announcement(clientID: number): Uint8Array {
+/** An awareness update in which `clientID` says it is here, at `clock`, as a client that has named its user sends. */
+function announcement(clientID: number, clock = 1): Uint8Array {
   const doc = new Y.Doc();
   doc.clientID = clientID;
   const awareness = new Awareness(doc);
-  awareness.setLocalStateField('user', { name: 'someone' });
+  for (let at = 0; at < clock; at += 1) awareness.setLocalStateField('user', { name: 'someone', at });
   const update = encodeAwarenessUpdate(awareness, [clientID]);
   awareness.destroy();
   return update;
@@ -90,6 +91,73 @@ describe('who has announced a client id', () => {
     expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
 
     removeAwarenessStates(room.awareness, [7], REMOTE);
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(false);
+  });
+
+  it('stays with the first commenter to announce it, whoever repeats it after', () => {
+    const room = open();
+    const presence = presenceIn(room);
+    const lin = sink();
+    const mallory = sink();
+    presence.join(lin, 'guest-2');
+    presence.join(mallory, 'guest-1');
+    room.applyAwareness(announcement(7), lin);
+
+    room.applyAwareness(announcement(7, 2), mallory);
+    room.applyAwareness(announcement(7, 3), sink());
+    room.applyAwareness(announcement(7, 4), REMOTE);
+
+    expect(presence.announcedByOther(7, 'guest-2')).toBe(false);
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
+  });
+
+  it('stays with the first connection to announce it, though a commenter repeats it', () => {
+    const room = open();
+    const presence = presenceIn(room);
+    const writer = sink();
+    const mallory = sink();
+    presence.join(mallory, 'guest-1');
+    room.applyAwareness(announcement(7), writer);
+
+    room.applyAwareness(announcement(7, 2), mallory);
+    removeAwarenessStates(room.awareness, [7], mallory);
+
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
+  });
+
+  it('passes from someone here before the first commenter to the next connection to renew it, not a commenter', () => {
+    const room = open();
+    const writer = sink();
+    const mallory = sink();
+    room.applyAwareness(announcement(7), writer);
+    const presence = presenceIn(room);
+    presence.join(mallory, 'guest-1');
+
+    room.applyAwareness(announcement(7, 2), mallory);
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
+
+    room.applyAwareness(announcement(7, 3), writer);
+    removeAwarenessStates(room.awareness, [7], sink());
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
+
+    room.applyAwareness(announcement(7, 4), writer);
+    removeAwarenessStates(room.awareness, [7], writer);
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(false);
+  });
+
+  it('stays with another process while it renews the id, and lapses once awareness would time it out', () => {
+    const room = open();
+    const presence = presenceIn(room);
+    const start = Date.now();
+    const at = (seconds: number) => vi.spyOn(Date, 'now').mockReturnValue(start + seconds * 1000);
+    room.applyAwareness(announcement(7), REMOTE);
+
+    at(20);
+    room.applyAwareness(announcement(7, 2), REMOTE);
+    at(40);
+    expect(presence.announcedByOther(7, 'guest-1')).toBe(true);
+
+    at(51);
     expect(presence.announcedByOther(7, 'guest-1')).toBe(false);
   });
 });

@@ -21,8 +21,11 @@ export type Peer = {
   change(make: (doc: Y.Doc) => void): Uint8Array;
   /** Sends an update as a live change, or as the sync step 2 a client sends while reconnecting. */
   send(update: Uint8Array, as?: 'live' | 'handshake'): void;
-  /** Tells the room this socket is here, under its own client id unless another is given. */
-  announce(clientID?: number): void;
+  /**
+   * Tells the room this socket is here, under its own client id unless another is given, at the next clock of its
+   * own unless another is given: an announcement at a clock no higher than the room's last for that id is ignored.
+   */
+  announce(clientID?: number, clock?: number): void;
   leave(): void;
 };
 
@@ -85,7 +88,7 @@ export async function peer(collab: CollabServer, room: string, token: string | n
       const step = as === 'live' ? syncProtocol.messageYjsUpdate : syncProtocol.messageYjsSyncStep2;
       handle.receive(syncFrame(step, update));
     },
-    announce: (clientID = doc.clientID) => handle.receive(awarenessFrame(clientID, (clock += 1))),
+    announce: (clientID = doc.clientID, at = (clock += 1)) => handle.receive(awarenessFrame(clientID, at)),
     leave: () => handle.disconnect(),
   };
 }
