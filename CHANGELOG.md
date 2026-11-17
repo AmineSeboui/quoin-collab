@@ -3,6 +3,25 @@
 Both packages are released together under one version, so a tag names the state of the whole wire: a
 client and a server from the same release always understand each other. Newest first.
 
+## Unreleased
+
+### Added
+- Comment-only access. A token with `readOnly: true` and `canComment: true` opens a connection that can add and
+  manage its own comments and change nothing else: it may start threads and reply as its `subject`, resolve,
+  reopen or delete the threads it started, and add or remove the highlight on their text. A `canComment`
+  without `readOnly` stays a writer, and every existing token and option behaves as in 0.2.1. The rule matches
+  `quoin-editor` 2.5's `yjsCommentThreads` store. `tokenAuthorize` and the standalone server pass `subject`
+  and `canComment` on.
+- A commenter's update is judged by its effect on a scratch copy of the room, so only commenter connections
+  pay for it. A refused live update gets a denied frame with reason `refused` and the socket closes with 4403;
+  a refused sync step 2 is ignored and the connection kept. The meter records `update.refused` and `/metrics`
+  exposes `quoin_updates_refused_total`.
+- A new frame, type 4, sent only on a comment connection before the server's sync step 1. It carries a fresh
+  client id, and the commenter may write only under it. `quoin-collab-client` adopts it, so `doc.clientID`
+  changes after connect; a cursor plugin comparing awareness ids with the document's id should know. A 0.2
+  client or a y-websocket client holding a comment token ignores the frame and is refused.
+- `CollabProvider` stops reconnecting and emits `denied` when an update is refused.
+
 ## 0.2.1 (2026-11-15)
 
 ### Changed

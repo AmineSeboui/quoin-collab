@@ -82,6 +82,58 @@ new CollabProvider({ url, room, token: () => fetch(`/api/token/${room}`).then((r
 Keep `exp` short. The token is checked when a socket opens and not again, so its lifetime is how long a revoked
 reader can still open a new connection, not how long they can stay.
 
+## Access levels
+
+The token's claims decide what a connection may do:
+
+| Claims | Access | What the connection may do |
+| --- | --- | --- |
+| none of the below | Write | Everything. The default. |
+| `readOnly: true` | Read | See the document and presence. Every change it sends is dropped silently. |
+| `readOnly: true`, `canComment: true` | Comment | Read, and add and manage its own comments. |
+
+`canComment` only narrows a read-only token. Without `readOnly: true` the holder is a writer, as before the
+claim existed. A commenter token also carries `subject`, the id of the person it was signed for:
+
+```ts
+const token = signRoomToken(
+  { room: documentId, exp: Math.floor(Date.now() / 1000) + 300, readOnly: true, canComment: true, subject: userId },
+  process.env.QUOIN_COLLAB_SECRET,
+);
+```
+
+`tokenAuthorize` passes `subject` and `canComment` on, and so does the standalone server.
+
+### What a commenter may change
+
+A commenter adds and manages their own comments and nothing else. They may start a thread whose
+`startedBy.id` is their subject, reply to any thread with `author.id` their subject, resolve, reopen or delete
+the threads they started (deleting a thread takes its replies with it), and add or remove the highlight on the
+text of their own threads. They may not insert or delete text, apply any other formatting, change blocks, add
+anything new at the top level of the document, or put an `avatarUrl` on `startedBy` or `author`.
+
+The rule matches the comment store of `quoin-editor` 2.5, `yjsCommentThreads`, which keeps its threads and
+replies in the maps `<field>-threads` and `<field>-replies`, with `field` defaulting to `comment`. The token's
+`subject` must equal the author id your editor writes, or the server refuses the first comment.
+
+### When a change is refused
+
+A commenter update outside the rule gets a denied frame with reason `refused`, and the socket closes with code
+4403 and reason `refused`. `CollabProvider` stops reconnecting and emits `denied`. A refused sync step 2, which
+is what a reconnecting client sends to catch the room up, is ignored and the connection stays. The meter
+records `update.refused`, with origin `handshake` or `live`, and `/metrics` counts them as
+`quoin_updates_refused_total`.
+
+### Offering comments in your interface
+
+Comment-only connections need `quoin-collab-client` 0.3. A 0.2 client, or a y-websocket client holding a
+comment token, never learns the client id the server assigned and is refused on its first change.
+
+Offer commenting only while the provider is synced. A comment made before the id arrives, or lost on a dying
+socket, never reaches the room, and acting on that lost comment later closes the session with 4403 until the
+page reloads, so a host should offer a reload when it sees `denied` with reason `refused`. Each commenter
+connection that writes adds one entry to the document's state vector.
+
 ## Watching it
 
 `GET /health` answers with the rooms and connections this process is serving, which is what a load balancer

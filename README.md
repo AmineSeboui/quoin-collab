@@ -54,6 +54,10 @@ const token = signRoomToken(
 );
 ```
 
+A token can also say a person may comment without editing: add `canComment: true` beside `readOnly: true` and a
+`subject`, and that person can add and manage their own comments and change nothing else. The
+[access levels](docs/self-hosting.md#access-levels) section has the rule.
+
 The browser opens a provider with it:
 
 ```ts
@@ -73,7 +77,8 @@ a third the size.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md), how a keystroke gets from one browser to another.
+- [Architecture](docs/architecture.md), how a keystroke gets from one browser to another, and how a commenter's
+  change is judged on the way.
 - [Self-hosting](docs/self-hosting.md), on a VPS, with Docker, or behind your own load balancer.
 - [Serverless](docs/serverless.md), running it in a function instead of a process.
 
