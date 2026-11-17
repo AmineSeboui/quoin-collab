@@ -83,6 +83,7 @@ export function openConnection({ room, sink, access, subject, meter, onError }: 
     disconnect() {
       room.awareness.off('update', track);
       room.detach(sink, [...clients]);
+      comments?.leave();
       meter.record({ kind: 'connection.closed', room: room.name });
     },
   };

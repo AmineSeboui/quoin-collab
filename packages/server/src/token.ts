@@ -12,7 +12,7 @@ export type RoomClaims = {
   /**
    * An opaque id for the reader, chosen by you. A hosted deployment counts distinct subjects to bill for
    * people rather than connections, so it should be stable per person and mean nothing on its own: an
-   * internal id rather than a name or an address.
+   * internal id rather than a name or an address. A commenter's must be the author id their comments carry.
    */
   subject?: string;
 };
