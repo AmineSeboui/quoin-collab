@@ -4,6 +4,8 @@ export type Scratch = {
   readonly doc: Y.Doc;
   readonly threads: Y.Map<unknown>;
   readonly replies: Y.Map<unknown>;
+  /** Every id the threads map has held before the update is tried, a deleted thread's included. */
+  readonly threadIds: ReadonlySet<string>;
   /** The copy as the room holds it, before the update is tried. */
   readonly before: Y.Snapshot;
 };
@@ -21,5 +23,7 @@ export function scratchCopy(doc: Y.Doc, field: string): Scratch {
   const replies = copy.getMap<unknown>(repliesName);
   Y.applyUpdate(copy, Y.encodeStateAsUpdate(doc));
   for (const name of [...copy.share.keys()]) if (name !== threadsName && name !== repliesName) copy.getText(name);
-  return { doc: copy, threads, replies, before: Y.snapshot(copy) };
+  // A map keeps the last item set under each key after it is deleted, so its keys are every id it has held.
+  const threadIds = new Set(threads._map.keys());
+  return { doc: copy, threads, replies, threadIds, before: Y.snapshot(copy) };
 }

@@ -31,11 +31,11 @@ function kindRefusal(changed: Y.Transaction['changed'], scratch: Scratch): strin
   return null;
 }
 
-function commentRefusal(events: Events, { threads, replies }: Scratch, subject: string): string | null {
+function commentRefusal(events: Events, { threads, replies, threadIds }: Scratch, subject: string): string | null {
   const threadChanges = keyChangesOf(events.get(threads));
   const replyChanges = keyChangesOf(events.get(replies));
   return (
-    threadRefusal(threadChanges, threads, subject) ??
+    threadRefusal(threadChanges, threads, threadIds, subject) ??
     replyRefusal(replyChanges, replies, subject, deletedThreads(threadChanges))
   );
 }

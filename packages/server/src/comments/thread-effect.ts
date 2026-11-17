@@ -16,10 +16,20 @@ function onlyResolvedDiffers(stored: Record<string, unknown>, value: unknown): b
   return [...keys].every((key) => key === 'resolved' || sameJson(stored[key], value[key]));
 }
 
-/** Why the changes to the threads map may not reach the room, or null when each is the subject's own. */
-export function threadRefusal(changes: KeyChanges, threads: Y.Map<unknown>, subject: string): string | null {
+/**
+ * Why the changes to the threads map may not reach the room, or null when each is the subject's own. A thread is new
+ * only under an id `threadIds` never held: the editor makes each id afresh, and a reply left behind by a deleted
+ * thread would otherwise show under whatever thread took its id.
+ */
+export function threadRefusal(
+  changes: KeyChanges,
+  threads: Y.Map<unknown>,
+  threadIds: ReadonlySet<string>,
+  subject: string,
+): string | null {
   for (const [key, { action, oldValue }] of changes) {
     const value = threads.get(key);
+    if (action === 'add' && threadIds.has(key)) return 'brings back a deleted thread';
     if (action === 'add' && !isNewThread(key, value, subject)) return 'adds a thread it may not';
     if (action === 'update' && !(startedBy(oldValue, subject) && onlyResolvedDiffers(oldValue, value))) {
       return 'changes a thread it may not';
